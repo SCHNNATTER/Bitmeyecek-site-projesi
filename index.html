@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Custom Dice Roller</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="top-section">
+        <div id="wallpaper-area"></div>
+        
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <div>Roll History</div>
+                <div id="player-profile">
+                    Playing as: <span id="display-name">Mysterious Stranger</span> 
+                    <button id="change-name-btn" onclick="changeName()">Change</button>
+                    <br>
+                    <button id="import-btn" onclick="importDndBeyond()" style="margin-top: 10px; padding: 5px; background: #c53131; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        Import from D&D Beyond
+                    </button>
+                    <button id="open-sheet-btn" onclick="toggleCharSheet()" style="margin-top: 10px; padding: 5px; background: #4477ff; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                        Open Sheet
+                    </button>
+                </div>
+            </div>
+            <ul id="roll-history">
+                </ul>
+        </div>
+    </div>
+
+    <div id="staging-tray">
+        <button id="clear-btn" onclick="clearPool()">Clear</button>
+        <div id="current-pool">Select dice to roll...</div>
+        
+        <div class="modifier-container">
+            <button id="btn-adv" class="toggle-btn" onclick="toggleAdvDis('adv')">ADV</button>
+            <button id="btn-dis" class="toggle-btn" onclick="toggleAdvDis('dis')">DIS</button>
+            
+            <span>+</span>
+            <input type="number" id="modifier-input" value="0" />
+        </div>
+        
+        <button id="roll-btn" onclick="rollPool()">ROLL</button>
+    </div>
+
+    <div id="bottom-bar">
+        <button class="dice-button" onclick="addToPool(4)">d4</button>
+        <button class="dice-button" onclick="addToPool(6)">d6</button>
+        <button class="dice-button" onclick="addToPool(8)">d8</button>
+        <button class="dice-button" onclick="addToPool(10)">d10</button>
+        <button class="dice-button" onclick="addToPool(12)">d12</button>
+        <button class="dice-button" onclick="addToPool(20)">d20</button>
+        <button class="dice-button" onclick="addToPool(100)">d100</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script src="script.js"></script>
+    <div id="char-sidebar" class="hidden-sheet">
+        <div class="sheet-header">
+            <h2 id="sheet-name">No Character Loaded</h2>
+            <button onclick="toggleCharSheet()" class="close-btn">X</button>
+        </div>
+        <div class="sheet-content">
+            <h3>Ability Modifiers (Click to use)</h3>
+            <div id="sheet-stats">
+                <p style="color: #666; font-size: 12px;">Import a character to see stats...</p>
+            </div>
+            
+            <h3>Saving Throws</h3>
+            <div id="sheet-saves" class="grid-container"></div>
+
+            <h3>Skills</h3>
+            <div id="sheet-skills" class="grid-container"></div>
+            
+            <h3>Actions & Spells</h3>
+            <div id="sheet-actions"></div>
+        </div>
+    </div>
+</body>
+</html>

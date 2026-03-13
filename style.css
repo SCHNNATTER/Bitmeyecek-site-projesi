@@ -1,0 +1,324 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1e1e24;
+    color: #ffffff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#top-section { display: flex; flex: 1; overflow: hidden; }
+
+#wallpaper-area {
+    flex: 1;
+    background: linear-gradient(135deg, #2c3e50 0%, #15151a 100%);
+    background-size: cover;
+    background-position: center;
+}
+
+#sidebar {
+    width: 360px; /* Made slightly wider to fit the grid of dice */
+    background-color: #15151a;
+    border-left: 1px solid #2a2a35;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #2a2a35;
+    font-weight: bold;
+    color: #888;
+}
+
+/* NEW: Styles for the profile section */
+#player-profile {
+    font-size: 13px;
+    margin-top: 10px;
+    font-weight: normal;
+}
+
+#display-name {
+    color: #ffcc00; /* Gold text for the player name */
+    font-weight: bold;
+}
+
+#change-name-btn {
+    background: none;
+    border: none;
+    color: #4477ff;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 5px;
+    text-decoration: underline;
+}
+
+#change-name-btn:hover {
+    color: #88aaff;
+}
+
+#roll-history {
+    list-style: none;
+    padding: 15px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#roll-history li {
+    background-color: #0a0a0c;
+    margin-bottom: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #2a2a35;
+}
+
+.player-name { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+.roll-formula { font-size: 18px; color: #fff; font-weight: bold; margin-bottom: 15px; }
+
+/* Flexbox to put the total and the tiny dice side-by-side */
+.roll-output {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.roll-total { font-size: 36px; font-weight: bold; color: #ffffff; }
+
+/* The grid holding the tiny individual dice */
+.dice-grid {
+    display: flex;
+    flex-wrap: wrap; /* Allows dice to wrap to the next line if there are too many */
+    gap: 5px;
+}
+
+/* The tiny individual dice */
+.mini-die {
+    background-color: #0033aa; /* Dark blue like your screenshot */
+    border: 1px solid #4477ff;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+}
+
+/* --- BOTTOM CONTROLS --- */
+#staging-tray {
+    height: 50px;
+    background-color: #1a1a24;
+    border-top: 1px solid #2a2a35;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+.modifier-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #888;
+}
+
+#modifier-input {
+    width: 60px;
+    height: 35px;
+    background-color: #15151a;
+    color: #ffcc00; /* Gold text to match the theme */
+    border: 1px solid #2a2a35;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+}
+
+#current-pool { font-size: 18px; font-weight: bold; color: #ffcc00; }
+
+#clear-btn, #roll-btn {
+    padding: 8px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+}
+
+#clear-btn { background-color: #333; color: white; }
+#clear-btn:hover { background-color: #555; }
+
+#roll-btn { background-color: #ffcc00; color: #000; font-size: 16px; }
+#roll-btn:hover { background-color: #e6b800; }
+
+#bottom-bar {
+    height: 80px;
+    background-color: #15151a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.dice-button {
+    padding: 10px 15px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    background-color: #1e1e24;
+    color: #ffcc00;
+    border: 2px solid #ffcc00;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+.dice-button:hover { background-color: #ffcc00; color: #000; }
+/* --- ADVANTAGE / DISADVANTAGE STYLES --- */
+#adv-dis-select {
+    height: 35px;
+    background-color: #15151a;
+    color: #ffcc00;
+    border: 1px solid #2a2a35;
+    border-radius: 5px;
+    padding: 0 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    outline: none;
+}
+
+/* --- ADVANTAGE / DISADVANTAGE TOGGLE BUTTONS --- */
+.toggle-btn {
+    height: 35px;
+    background-color: #15151a;
+    color: #888;
+    border: 2px solid #2a2a35;
+    border-radius: 5px;
+    padding: 0 10px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.toggle-btn:hover {
+    border-color: #555;
+    color: #ccc;
+}
+
+/* This is the magic class that makes it light up green! */
+.toggle-btn.active {
+    color: #44ff44; 
+    border-color: #44ff44;
+    background-color: #0a220a; /* A very faint green background tint */
+}
+#btn-dis.active {
+    color: #ff4444; 
+    border-color: #ff4444;
+    background-color: #220a0a; /* A very faint red background tint */
+}
+/* Keep the dropped die styling from before! */
+.dropped-die {
+    opacity: 0.4;
+    text-decoration: line-through;
+    background-color: #555 !important;
+    border-color: #333 !important;
+}
+/* --- CHARACTER SHEET SIDEBAR --- */
+#char-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px; /* Hidden completely off-screen to the right */
+    width: 350px;
+    height: 100vh;
+    background-color: #1a1a24;
+    border-left: 2px solid #2a2a35;
+    transition: right 0.3s ease-in-out; /* Smooth sliding animation */
+    box-shadow: -5px 0 15px rgba(0,0,0,0.8);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+#char-sidebar.open {
+    right: 0; /* Slides into view */
+}
+
+.sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #15151a;
+    border-bottom: 2px solid #2a2a35;
+    color: #ffcc00;
+}
+
+.sheet-header h2 { margin: 0; font-size: 18px; }
+
+.close-btn {
+    background: #c53131; color: white; border: none; 
+    border-radius: 50%; width: 25px; height: 25px; 
+    cursor: pointer; font-weight: bold;
+}
+
+.sheet-content {
+    padding: 15px;
+    overflow-y: auto; /* Lets you scroll if the sheet gets too long */
+    color: #ccc;
+}
+
+.sheet-content h3 {
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #888;
+}
+
+/* Styles for the clickable stat buttons */
+.stat-btn {
+    background-color: #2a2a35;
+    color: #44ff44;
+    border: 1px solid #555;
+    padding: 8px 12px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    width: calc(33% - 10px); /* Puts them in a neat 3-column grid */
+}
+
+.stat-btn:hover { background-color: #444; border-color: #ffcc00; }
+/* --- SKILLS & SAVES GRID --- */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Creates two equal columns */
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.skill-btn {
+    background-color: #2a2a35;
+    color: #ddd;
+    border: 1px solid #444;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between; /* Pushes the name left and number right */
+    font-size: 12px;
+}
+
+.skill-btn:hover { background-color: #444; border-color: #ffcc00; }
+
+.skill-val {
+    color: #44ff44; 
+    font-weight: bold;
+}
