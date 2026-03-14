@@ -149,12 +149,10 @@ function openClearModal() {
     let modal = document.getElementById("clear-modal");
     if(modal) modal.classList.remove("hidden-modal");
 }
-
 function closeClearModal() {
     let modal = document.getElementById("clear-modal");
     if(modal) modal.classList.add("hidden-modal");
 }
-
 function confirmClearHistory() {
     rollsRef.remove(); 
     closeClearModal(); 
@@ -169,13 +167,11 @@ rollsRef.on('value', (snapshot) => {
 
 rollsRef.on('child_added', (snapshot) => {
     const data = snapshot.val();
-    
     let timeString = "";
     if (data.timestamp) {
         let date = new Date(data.timestamp);
         timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-
     let newRollMessage = document.createElement("li");
     newRollMessage.innerHTML = `
         <div class="player-name">
@@ -188,7 +184,6 @@ rollsRef.on('child_added', (snapshot) => {
             <div class="dice-grid">${data.diceHTML}</div>
         </div>
     `;
-    
     let historyEl = document.getElementById("roll-history");
     if(historyEl) historyEl.prepend(newRollMessage);
 });
@@ -200,7 +195,6 @@ async function importDndBeyond(isManual = true) {
     if (isManual || !charId) {
         let charInput = prompt("Enter your D&D Beyond Character ID (or paste the full URL):", charId || "");
         if (!charInput || charInput.trim() === "") return;
-
         charId = charInput.split('/').pop().trim();
         localStorage.setItem("dndCharId", charId); 
     }
@@ -209,13 +203,11 @@ async function importDndBeyond(isManual = true) {
 
     try {
         let proxyUrl = `/api/dnd/${charId}`; 
-
         let response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`Netlify proxy failed! Status: ${response.status}`);
         
         let rawData = await response.json();
         if (rawData.success === false) throw new Error(rawData.message || "Sheet is Private.");
-
         let charData = rawData.data;
 
         let totalLevel = charData.classes ? charData.classes.reduce((sum, cls) => sum + cls.level, 0) : 1;
@@ -287,16 +279,30 @@ async function importDndBeyond(isManual = true) {
         });
         document.getElementById("sheet-skills").innerHTML = skillsHTML;
 
-        // --- EXTRACTION ENGINE: WEAPONS & ACTIONS ---
+        // --- EXTRACTION ENGINE: WEAPONS, MODIFIERS, & CHECKBOXES ---
         let actionsHTML = "<h4 style='color:#ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Weapons & Actions</h4>";
         let allActions = [];
         
+        let strMod = statMods[0];
+        let dexMod = statMods[1];
+
         if (charData.inventory) {
             charData.inventory.forEach(item => {
                 if (item.equipped && item.definition?.filterType === "Weapon") {
-                    // THE FIX: Check for standard damage OR magic item base damage!
                     let dmgDice = item.definition.damage?.diceString || item.definition.baseItem?.damage?.diceString || "";
-                    allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice });
+                    
+                    // The Mini Math Engine: Find the right stat to use!
+                    let isFinesse = item.definition.properties?.some(p => p.name === "Finesse") || false;
+                    let isRanged = item.definition.attackType === 2; // 1 = Melee, 2 = Ranged
+                    
+                    let baseMod = isRanged ? dexMod : strMod;
+                    if (isFinesse) baseMod = Math.max(strMod, dexMod); // Finesse uses whichever is higher
+
+                    // Check for magic weapon bonuses (e.g. +1 Sword)
+                    let magicBonus = item.definition.grantedModifiers?.find(m => m.type === "bonus" && m.subType === "magic")?.value || 0;
+                    let totalDamageMod = baseMod + magicBonus;
+
+                    allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice, mod: totalDamageMod, uses: 0 });
                 }
             });
         }
@@ -305,7 +311,11 @@ async function importDndBeyond(isManual = true) {
             ['class', 'race', 'feat'].forEach(type => {
                 if (charData.actions[type]) {
                     charData.actions[type].forEach(act => {
-                        if (act.name) allActions.push({ name: act.name, type: "Action", dice: "" });
+                        if (act.name) {
+                            // Extract limited uses for the checkboxes!
+                            let maxUses = act.limitedUse?.maxUses || 0;
+                            allActions.push({ name: act.name, type: "Action", dice: "", mod: 0, uses: maxUses });
+                        }
                     });
                 }
             });
@@ -315,12 +325,29 @@ async function importDndBeyond(isManual = true) {
             .map(name => allActions.find(a => a.name === name));
 
         uniqueActions.forEach(act => {
-            // THE FIX: Stack the text and put the button on the right!
-            let btnHTML = act.dice ? `<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}')">${act.dice}</button>` : ``;
+            // Build the Button (now includes the modifier!)
+            let btnHTML = "";
+            if (act.dice) {
+                let sign = act.mod >= 0 ? "+" : "";
+                // Notice how we are passing BOTH the dice AND the modifier to the loadActionToTray function now
+                btnHTML = `<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}', ${act.mod})">${act.dice} ${sign}${act.mod}</button>`;
+            }
+
+            // Build the Checkboxes
+            let usesHTML = "";
+            if (act.uses > 0) {
+                usesHTML = `<div style="margin-top: 6px;">`;
+                for(let i=0; i < act.uses; i++) {
+                    usesHTML += `<input type="checkbox" style="margin-right: 4px; cursor: pointer; transform: scale(1.2);">`;
+                }
+                usesHTML += `</div>`;
+            }
+
             actionsHTML += `<div class="action-card">
                                 <div>
                                     <strong style="display:block; margin-bottom:3px; font-size:13px;">${act.name}</strong>
                                     <span class="action-type">${act.type}</span>
+                                    ${usesHTML}
                                 </div>
                                 ${btnHTML}
                             </div>`;
@@ -386,8 +413,8 @@ if (localStorage.getItem("dndCharId")) {
     importDndBeyond(false); 
 }
 
-// --- 10. ACTION TRAY LOADER ---
-function loadActionToTray(diceString) {
+// --- 10. ACTION TRAY LOADER (NOW ACCEPTS MODIFIERS!) ---
+function loadActionToTray(diceString, modifier = 0) {
     clearPool(); // Empty the tray first
     if (!diceString) return;
     
@@ -397,9 +424,13 @@ function loadActionToTray(diceString) {
         let count = parseInt(parts[0]) || 1;
         let sides = parseInt(parts[1]);
         
-        // Add the dice to the tray!
+        // Add the dice to the tray
         for (let i = 0; i < count; i++) {
             addToPool(sides);
         }
     }
+    
+    // Auto-fill the modifier box!
+    let modInput = document.getElementById("modifier-input");
+    if(modInput) modInput.value = modifier;
 }
