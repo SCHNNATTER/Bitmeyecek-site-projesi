@@ -246,7 +246,7 @@ async function importDndBeyond(isManual = true) {
         let statNames = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
         let statsHTML = "";
 
-        // THE FIX: Changed 'onclick' to use our new loadSkillToTray function
+        // THE FIX: Changed 'onclick' to use our new loadSkillToTray function!
         for (let i = 0; i < 6; i++) {
             let baseScore = charData.stats[i]?.value || 10;
             let bonusScore = charData.bonusStats[i]?.value || 0;
