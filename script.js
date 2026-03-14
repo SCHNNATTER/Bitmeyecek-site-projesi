@@ -291,6 +291,79 @@ async function importDndBeyond(isManual = true) {
                            </button>`;
         });
         document.getElementById("sheet-skills").innerHTML = skillsHTML;
+        // --- EXTRACTION ENGINE: WEAPONS & ACTIONS ---
+        let actionsHTML = "<h4 style='color:#ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Weapons & Actions</h4>";
+        let allActions = [];
+        
+        // 1. Grab Equipped Weapons from Inventory
+        if (charData.inventory) {
+            charData.inventory.forEach(item => {
+                if (item.equipped && item.definition.filterType === "Weapon") {
+                    allActions.push({ name: item.definition.name, type: "Weapon" });
+                }
+            });
+        }
+        
+        // 2. Grab Class, Race, and Feat Actions
+        if (charData.actions) {
+            ['class', 'race', 'feat'].forEach(type => {
+                if (charData.actions[type]) {
+                    charData.actions[type].forEach(act => {
+                        allActions.push({ name: act.name, type: "Action" });
+                    });
+                }
+            });
+        }
+
+        // 3. Remove duplicates (D&D Beyond often lists things twice)
+        let uniqueActions = Array.from(new Set(allActions.map(a => a.name)))
+            .map(name => allActions.find(a => a.name === name));
+
+        uniqueActions.forEach(act => {
+            actionsHTML += `<div class="action-card">
+                                <strong>${act.name}</strong>
+                                <span class="action-type">${act.type}</span>
+                            </div>`;
+        });
+
+        // --- EXTRACTION ENGINE: SPELLS ---
+        let spellsHTML = "<h4 style='color:#4477ff; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Prepared Spells</h4>";
+        let allSpells = [];
+
+        if (charData.classSpells) {
+            charData.classSpells.forEach(cs => {
+                if (cs.spells) {
+                    cs.spells.forEach(spellObj => {
+                        // Only grab Cantrips (level 0), Always Prepared, or explicitly Prepared spells
+                        if (spellObj.definition.level === 0 || spellObj.alwaysPrepared || spellObj.prepared) {
+                            allSpells.push({ name: spellObj.definition.name, level: spellObj.definition.level });
+                        }
+                    });
+                }
+            });
+        }
+
+        // 1. Sort spells by level (Cantrips first, then Level 1, 2, etc.)
+        allSpells.sort((a, b) => a.level - b.level);
+        
+        // 2. Remove duplicates (Multiclassing can cause overlap)
+        let uniqueSpells = Array.from(new Set(allSpells.map(s => s.name)))
+            .map(name => allSpells.find(s => s.name === name));
+
+        if (uniqueSpells.length === 0) {
+            spellsHTML += `<p style="font-size:12px; color:#666; font-style: italic;">No spells prepared (or martial class).</p>`;
+        } else {
+            uniqueSpells.forEach(spell => {
+                let lvlText = spell.level === 0 ? "Cantrip" : `Lvl ${spell.level}`;
+                spellsHTML += `<div class="action-card">
+                                    <strong>${spell.name}</strong>
+                                    <span class="spell-type">${lvlText}</span>
+                                </div>`;
+            });
+        }
+
+        // Send everything to the sidebar!
+        document.getElementById("sheet-actions").innerHTML = actionsHTML + spellsHTML;
 
         currentPlayerName = charData.name;
         localStorage.setItem("tavernPlayerName", currentPlayerName);
