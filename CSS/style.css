@@ -46,7 +46,7 @@ body {
     flex-grow: 1; 
     display: flex;
     flex-direction: column;
-    background: #111;
+    background: #18181b; /* The "Pro" Charcoal Gray */
     border: 1px solid #333;
     border-radius: 8px;
     overflow: hidden;
@@ -127,24 +127,28 @@ body {
 }
 .dropped-die { background: #444; color: #888; border-color: #333; text-decoration: line-through; }
 
-/* --- THE FIX: CHARACTER SHEET OVERLAY --- */
+
+/* --- THE FIX: CHARACTER SHEET OVERLAY (LEFT SIDE) --- */
 #char-sidebar {
     position: fixed; 
-    right: 0; /* THE FIX: Locked to the far right edge of the screen */
+    left: 0; /* Changed from right to left */
     top: 0; 
     width: 350px; 
     height: 100vh;
     background: #1a1a24; 
-    border-left: 2px solid #333; 
+    border-right: 2px solid #333; /* Changed border to the right side */
     padding: 20px; 
     box-sizing: border-box; 
     overflow-y: auto; 
-    box-shadow: -5px 0 15px rgba(0,0,0,0.5);
-    transform: translateX(100%); /* Hides it totally off-screen to the right! */
+    box-shadow: 5px 0 15px rgba(0,0,0,0.5); /* Shadow shifted to the right */
+    transform: translateX(-100%); /* Hides it totally off-screen to the LEFT (-100%) */
     transition: transform 0.3s ease-in-out; 
     z-index: 1000;
 }
-#char-sidebar.open { transform: translateX(0); /* Slides in cleanly from the right */ }
+
+#char-sidebar.open { 
+    transform: translateX(0); /* Slides in cleanly from the left */ 
+}
 
 /* Stats & Skills */
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -160,7 +164,7 @@ body {
     display: flex; justify-content: space-between;
 }
 .skill-btn:hover { background: #333; border-color: #ffcc00; }
-.skill-val { color: white; font-weight: bold; }
+.skill-val { color: #ffcc00; font-weight: bold; }
 
 /* Actions & Spells */
 .action-card {
@@ -191,3 +195,216 @@ body {
 }
 .modal-box { background: #1a1a24; padding: 20px; border-radius: 8px; border: 1px solid #444; text-align: center; }
 .hidden-modal { display: none !important; }
+/* --- INITIATIVE TRACKER --- */
+#initiative-tracker {
+    height: 250px; /* Adjust height to fill your red zone */
+    background: #15151a;
+    border-top: 2px solid #2a2a35;
+    display: flex;
+    flex-direction: column;
+}
+
+.tracker-header {
+    background: #22222d;
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffcc00;
+}
+
+.mini-btn {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+#init-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.init-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 15px;
+    border-bottom: 1px solid #2a2a35;
+    font-size: 13px;
+    animation: fadeIn 0.3s ease;
+}
+
+.init-score {
+    background: #4477ff;
+    color: white;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.init-name { flex-grow: 1; margin-left: 10px; color: #ddd; }
+
+.init-delete {
+    color: #882222;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 10px;
+    opacity: 0.5;
+}
+.init-delete:hover { opacity: 1; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+/* --- ROLE SELECTION MODAL --- */
+.role-btn {
+    padding: 20px;
+    font-size: 18px;
+    width: 200px;
+    margin: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 2px solid #444;
+    background: #222;
+    color: white;
+    transition: 0.2s;
+}
+.role-btn:hover { background: #333; border-color: #ffcc00; }
+
+/* Secret Roll Button */
+#btn-secret {
+    background: #444;
+    color: #ff4444;
+    border: 1px solid #666;
+}
+#btn-secret.active {
+    background: #882222;
+    color: white;
+    border-color: #ff4444;
+    box-shadow: 0 0 10px #ff4444;
+}
+/* --- INTERACTIVE DICE TRAY --- */
+.tray-die {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: 0.2s;
+    display: inline-block;
+}
+
+.tray-die:hover {
+    border-color: #ff4444;
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff4444;
+    text-decoration: line-through;
+}
+/* --- DM SCREEN DASHBOARD --- */
+#btn-dm-screen {
+    background: #ffcc00;
+    color: #000;
+    font-weight: bold;
+    transition: 0.2s;
+    border: 1px solid #cc9900;
+}
+
+#btn-dm-screen:hover {
+    background: #ffaa00;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+}
+
+.dm-grid {
+    flex-grow: 1;
+    padding: 30px;
+    display: grid;
+    /* This automatically makes columns that are at least 350px wide! */
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    overflow-y: auto;
+    align-content: start;
+}
+
+.dm-card {
+    background: #1a1a24;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 250px; /* Gives them a nice chunky box shape */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.dm-card-title {
+    color: #4477ff;
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+/* --- MONSTER VAULT & STATBLOCKS --- */
+.mon-list-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #2a2a35;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ddd;
+}
+.mon-list-item:hover { background: #1a1a21; }
+
+.mon-input {
+    background: #111;
+    color: white;
+    border: 1px solid #444;
+    padding: 8px;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+/* Authentic Dark-Mode 5e Statblock */
+.statblock {
+    background: #1e1e24;
+    border: 2px solid #882222;
+    border-radius: 4px;
+    padding: 20px;
+    width: 100%;
+    max-width: 500px;
+    color: #ddd;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+    font-family: Georgia, serif;
+}
+
+.stat-name {
+    color: #ff4444;
+    font-family: "Times New Roman", serif;
+    font-size: 28px;
+    margin: 0 0 5px 0;
+}
+
+.stat-red-line {
+    width: 100%;
+    height: 3px;
+    background: #882222;
+    margin: 10px 0;
+}
+
+.stat-scores {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    color: #ffcc00;
+}
+
+.stat-scores strong { color: white; }
+
+.stat-section p { margin: 5px 0; font-size: 14px; line-height: 1.4; }
+.stat-section strong { color: white; font-style: italic; }

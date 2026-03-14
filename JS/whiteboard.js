@@ -1,11 +1,12 @@
 // 1. Initialize the Fabric Canvas
-const canvas = new fabric.Canvas('whiteboard', { selection: true });
+const canvas = new fabric.Canvas('whiteboard', { 
+    selection: true,
+    backgroundColor: '#18181b' // Sets the grayer background
+});
 
-// --- FIREBASE SYNC SETUP ---
 const boardRef = database.ref('whiteboard_objects');
 let isUpdatingFromServer = false;
 
-// 2. Make the canvas fit its container
 function resizeCanvas() {
     const container = document.getElementById('canvas-container');
     if(container) {
@@ -20,37 +21,74 @@ setTimeout(resizeCanvas, 100);
 canvas.freeDrawingBrush.color = '#ff4444';
 canvas.freeDrawingBrush.width = 3;
 
-// --- THE NEW OBJECT-BASED SYNC ENGINE ---
+// --- LAYER & LOCK FUNCTIONS ---
 
-// When something is added (like a drawing path or an image)
+function bringFront() {
+    const activeObj = canvas.getActiveObject();
+    if (activeObj) {
+        activeObj.bringToFront();
+        saveObjectChange(activeObj);
+    }
+}
+
+function sendBack() {
+    const activeObj = canvas.getActiveObject();
+    if (activeObj) {
+        activeObj.sendToBack();
+        saveObjectChange(activeObj);
+    }
+}
+
+function toggleLock() {
+    const activeObj = canvas.getActiveObject();
+    if (!activeObj) return;
+
+    // Toggle the locked state
+    const isLocked = !activeObj.lockMovementX;
+
+    activeObj.set({
+        lockMovementX: isLocked,
+        lockMovementY: isLocked,
+        lockScalingX: isLocked,
+        lockScalingY: isLocked,
+        lockRotation: isLocked,
+        hasControls: !isLocked, // Hide the "grab handles" if locked
+        hoverCursor: isLocked ? 'default' : 'move'
+    });
+
+    // Visual feedback: change border color if locked
+    activeObj.borderColor = isLocked ? '#ff4444' : '#3399ff';
+
+    canvas.renderAll();
+    saveObjectChange(activeObj);
+}
+
+// Helper to update Firebase when we change layers/locks
+function saveObjectChange(obj) {
+    if (isUpdatingFromServer) return;
+    if (obj.id) {
+        boardRef.child(obj.id).update(obj.toJSON(['id', 'lockMovementX', 'lockMovementY', 'lockScalingX', 'lockScalingY', 'lockRotation', 'hasControls', 'borderColor']));
+    }
+}
+
+// --- SYNC ENGINE ---
+
 canvas.on('object:added', (options) => {
     if (isUpdatingFromServer) return;
     const obj = options.target;
-    
-    // Give every object a unique ID so we can track it
     if (!obj.id) {
         obj.id = 'obj_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     }
-
-    // Send only THIS object to Firebase
-    boardRef.child(obj.id).set(obj.toJSON(['id']));
+    boardRef.child(obj.id).set(obj.toJSON(['id', 'lockMovementX', 'lockMovementY', 'lockScalingX', 'lockScalingY', 'lockRotation', 'hasControls', 'borderColor']));
 });
 
-// When an object is moved or resized
 canvas.on('object:modified', (options) => {
-    if (isUpdatingFromServer) return;
-    const obj = options.target;
-    if (obj.id) {
-        boardRef.child(obj.id).update(obj.toJSON(['id']));
-    }
+    saveObjectChange(options.target);
 });
 
-// Listen for new objects from other players
 boardRef.on('child_added', (snapshot) => {
     if (isUpdatingFromServer) return;
     const data = snapshot.val();
-    
-    // Check if we already have this object
     const existing = canvas.getObjects().find(o => o.id === data.id);
     if (!existing) {
         isUpdatingFromServer = true;
@@ -64,22 +102,21 @@ boardRef.on('child_added', (snapshot) => {
     }
 });
 
-// Listen for movements from other players
 boardRef.on('child_changed', (snapshot) => {
     if (isUpdatingFromServer) return;
     const data = snapshot.val();
     const existing = canvas.getObjects().find(o => o.id === data.id);
-    
     if (existing) {
         isUpdatingFromServer = true;
         existing.set(data);
-        existing.setCoords(); // Refresh the bounding box
+        existing.setCoords();
+        // If it's a re-layering (z-index change), we need to sort the canvas
+        canvas.sortObjects(); 
         canvas.renderAll();
         isUpdatingFromServer = false;
     }
 });
 
-// Listen for deletions
 boardRef.on('child_removed', (snapshot) => {
     const data = snapshot.val();
     const existing = canvas.getObjects().find(o => o.id === data.id);
@@ -91,14 +128,14 @@ boardRef.on('child_removed', (snapshot) => {
     }
 });
 
-// 3. Toolbar Logic
+// --- TOOLBAR & CAMERA (REST OF CODE) ---
+
 function setMode(mode) {
     canvas.isDrawingMode = (mode === 'draw');
     document.getElementById('btn-draw').classList.toggle('active', mode === 'draw');
     document.getElementById('btn-select').classList.toggle('active', mode === 'select');
 }
 
-// 4. Add Images
 function addImage(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -114,26 +151,29 @@ function addImage(event) {
     reader.readAsDataURL(file);
 }
 
-// 5. Clear Board
 function clearBoard() {
     if(confirm("Clear for everyone?")) {
-        boardRef.remove(); // This triggers 'child_removed' for everyone
+        boardRef.remove();
         canvas.clear();
+        canvas.backgroundColor = '#18181b';
+        canvas.renderAll();
     }
 }
 
-// 6. Delete Key
 window.addEventListener('keydown', (e) => {
     if ((e.key === "Delete" || e.key === "Backspace") && e.target.tagName !== 'INPUT') {
         canvas.getActiveObjects().forEach(obj => {
-            if (obj.id) boardRef.child(obj.id).remove();
-            canvas.remove(obj);
+            // Only allow deleting if it's NOT locked!
+            if (!obj.lockMovementX) {
+                if (obj.id) boardRef.child(obj.id).remove();
+                canvas.remove(obj);
+            }
         });
         canvas.discardActiveObject().renderAll();
     }
 });
 
-// --- CAMERA (LOCAL ONLY) ---
+// CAMERA CONTROLS
 canvas.on('mouse:wheel', function(opt) {
     let delta = opt.e.deltaY;
     let zoom = canvas.getZoom() * (0.999 ** delta);

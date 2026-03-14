@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D&D Virtual Tabletop</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -13,18 +13,35 @@
 </head>
 <body>
 
+    <div id="role-modal" class="modal-overlay hidden-modal">
+        <div class="modal-box" style="width: 400px;">
+            <h2 style="color: white; margin-top: 0;">Identify Yourself</h2>
+            <p style="color: #aaa; font-size: 13px;">Are you running the game or playing in it?</p>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+                <button class="role-btn" onclick="selectRole('player')">🛡️ PLAYER</button>
+                <button class="role-btn" onclick="selectRole('dm')" style="border-color: #ffcc00; color: #ffcc00;">👑 DM</button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         
         <div class="main-column">
             
             <div id="whiteboard-wrapper">
                 <div id="whiteboard-toolbar">
-                    <button class="wb-btn active" id="btn-select" onclick="setMode('select')">👆 Select/Move</button>
+                    <button class="wb-btn active" id="btn-select" onclick="setMode('select')">👆 Select</button>
                     <button class="wb-btn" id="btn-draw" onclick="setMode('draw')">✏️ Draw</button>
-                    <button class="wb-btn" onclick="document.getElementById('image-upload').click()">🖼️ Add Map/Token</button>
+                    <button class="wb-btn" onclick="document.getElementById('image-upload').click()">🖼️ Add Image</button>
                     <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="addImage(event)">
-                    <button class="wb-btn" style="background: #882222;" onclick="clearBoard()">🗑️ Clear</button>
-                    <span class="wb-hint">Scroll to Zoom | Alt + Drag to Pan | Del to Delete</span>
+                    
+                    <div style="height: 20px; width: 1px; background: #444; margin: 0 5px;"></div>
+                    <button class="wb-btn" onclick="bringFront()" title="Bring to Front">🔝 Front</button>
+                    <button class="wb-btn" onclick="sendBack()" title="Send to Back">🔙 Back</button>
+                    <button class="wb-btn" id="btn-lock" onclick="toggleLock()" style="background: #4a4a4a;">🔒 Lock/Unlock</button>
+                    
+                    <button class="wb-btn" style="background: #882222; margin-left: 10px;" onclick="clearBoard()">🗑️ Clear</button>
+                    <span class="wb-hint">Scroll to Zoom | Alt + Drag to Pan</span>
                 </div>
                 <div id="canvas-container">
                     <canvas id="whiteboard"></canvas>
@@ -33,16 +50,23 @@
 
             <div id="dice-section">
                 <div class="dice-controls-top">
-                    <button class="ui-btn" onclick="clearPool()">Clear</button>
                     <div id="current-pool" class="pool-display">Select dice to roll...</div>
                     <div class="adv-dis-group">
                         <button id="btn-adv" class="ui-btn" onclick="toggleAdvDis('adv')">ADV</button>
                         <button id="btn-dis" class="ui-btn" onclick="toggleAdvDis('dis')">DIS</button>
                     </div>
+
+                    <button id="btn-secret" class="ui-btn" onclick="toggleSecret()" title="Roll only to DM">👁️ SECRET</button>
+
                     <span style="color: white; font-weight: bold; font-size: 20px;">+</span>
                     <input type="number" id="modifier-input" value="0">
-                    <button class="ui-btn roll-btn" onclick="rollPool()">ROLL</button>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <button class="ui-btn roll-btn" onclick="rollPool()">ROLL</button>
+                        <button class="ui-btn" onclick="clearPool()" style="padding: 4px; font-size: 11px; background: #444; border-color: #555;">Clear Tray</button>
+                    </div>
                 </div>
+                
                 <div class="dice-buttons-bottom">
                     <button class="dice-btn" onclick="addToPool(4)">d4</button>
                     <button class="dice-btn" onclick="addToPool(6)">d6</button>
@@ -53,7 +77,6 @@
                     <button class="dice-btn" onclick="addToPool(100)">d100</button>
                 </div>
             </div>
-            
         </div>
 
         <div id="sidebar">
@@ -66,42 +89,159 @@
                     Playing as: <strong id="display-name" style="color: #ffcc00;">Mysterious Stranger</strong> 
                     <a href="#" style="color: #4477ff; margin-left: 5px;" onclick="changeName()">Change</a>
                 </div>
+                
                 <button class="import-btn" onclick="importDndBeyond(true)">Import from D&D Beyond</button>
                 <button class="ui-btn" style="width: 100%; margin-top: 5px; background: #222;" onclick="toggleCharSheet()">Toggle Character Sheet</button>
+                
+                <button id="btn-dm-screen" class="ui-btn" style="width: 100%; margin-top: 10px; display: none;" onclick="toggleDmScreen()">👑 Open DM Screen</button>
+                
+                <div style="font-size: 11px; color: #666; margin-top: 10px; text-align: center;">
+                    Not a DM? <a href="#" style="color: #4477ff;" onclick="localStorage.removeItem('tavernUserRole'); location.reload();">Reset Role</a>
+                </div>
+            </div>
+
+            <div id="initiative-tracker">
+                <div class="tracker-header">
+                    <span>⚔️ Initiative</span>
+                    <div class="tracker-controls">
+                        <button class="mini-btn" onclick="openInitiativeModal()" title="Add Combatant">+</button>
+                        <button class="mini-btn" style="background: #882222;" onclick="clearInitiative()" title="Clear Combat">🗑️</button>
+                    </div>
+                </div>
+                <ul id="init-list"></ul>
             </div>
 
             <ul id="roll-history"></ul>
         </div>
-
-        <div id="char-sidebar">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px;">
-                <h2 id="sheet-name" style="color: white; margin: 0;">Character Name</h2>
-                <button class="ui-btn" style="background: #c53131; padding: 5px 10px; font-size: 12px;" onclick="toggleCharSheet()">❌ Close</button>
-            </div>
-            
-            <h4 style="color: #aaa; margin-bottom: 5px;">Attributes</h4>
-            <div id="sheet-stats" class="stat-grid"></div>
-            
-            <h4 style="color: #aaa; margin-bottom: 5px; margin-top: 15px;">Saving Throws</h4>
-            <div id="sheet-saves" class="skill-list"></div>
-            
-            <h4 style="color: #aaa; margin-bottom: 5px; margin-top: 15px;">Skills</h4>
-            <div id="sheet-skills" class="skill-list"></div>
-            
-            <div id="sheet-actions"></div>
-        </div>
-
-        <div id="clear-modal" class="hidden-modal modal-overlay">
-            <div class="modal-box">
-                <p style="color: white;">Clear the entire campaign's roll history?</p>
-                <button class="ui-btn" onclick="confirmClearHistory()" style="background: #c53131;">Yes, Clear It</button>
-                <button class="ui-btn" onclick="closeClearModal()">Cancel</button>
-            </div>
-        </div>
-
     </div>
 
-    <script src="script.js"></script>
-    <script src="whiteboard.js"></script>
+    <div id="char-sidebar">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px;">
+            <h2 id="sheet-name" style="color: white; margin: 0;">Character Name</h2>
+            <button class="ui-btn" style="background: #c53131; padding: 5px 10px; font-size: 12px;" onclick="toggleCharSheet()">❌ Close</button>
+        </div>
+        
+        <h4 style="color: #ffcc00; margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 3px;">Attributes</h4>
+        <div id="sheet-stats" class="stat-grid"></div>
+        
+        <h4 style="color: #ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;">Saving Throws</h4>
+        <div id="sheet-saves" class="skill-list"></div>
+        
+        <h4 style="color: #ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;">Skills</h4>
+        <div id="sheet-skills" class="skill-list"></div>
+        
+        <div id="sheet-actions"></div>
+    </div>
+
+    <div id="init-modal" class="hidden-modal modal-overlay">
+        <div class="modal-box">
+            <h3 style="color: white; margin-top: 0;">Add to Initiative</h3>
+            <input type="text" id="init-name" placeholder="Name" style="width: 100%; margin-bottom: 10px; padding: 8px; background: #111; color: white;">
+            <input type="number" id="init-score" placeholder="Roll" style="width: 100%; margin-bottom: 15px; padding: 8px; background: #111; color: white;">
+            <div style="display: flex; gap: 10px;">
+                <button class="ui-btn" style="flex: 1; background: #4477ff;" onclick="addInitiative()">Add</button>
+                <button class="ui-btn" style="flex: 1;" onclick="closeInitiativeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="clear-modal" class="hidden-modal modal-overlay">
+        <div class="modal-box">
+            <p style="color: white;">Clear the entire campaign's roll history?</p>
+            <button class="ui-btn" onclick="confirmClearHistory()" style="background: #c53131;">Yes, Clear It</button>
+            <button class="ui-btn" onclick="closeClearModal()">Cancel</button>
+        </div>
+    </div>
+
+    <div id="dm-screen" class="hidden-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f0f13; z-index: 2000; display: flex; flex-direction: column;">
+        <div style="background: #1a1a24; padding: 15px 30px; border-bottom: 2px solid #ffcc00; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: #ffcc00; margin: 0;">👑 Behind the DM Screen</h2>
+            <button class="ui-btn" style="background: #c53131; font-weight: bold; padding: 8px 20px;" onclick="toggleDmScreen()">❌ Close Screen</button>
+        </div>
+
+        <div id="dm-content" class="dm-grid">
+            <div class="dm-card" style="cursor: pointer;" onclick="toggleMonsterVault()">
+                <h3 class="dm-card-title">🐉 Monster Vault</h3>
+                <p style="color: #888; font-size: 13px;">Create, manage, and view custom monster statblocks.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="monster-vault" class="hidden-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f0f13; z-index: 2500; display: flex; flex-direction: column;">
+        <div style="background: #1a1a24; padding: 15px 30px; border-bottom: 2px solid #882222; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: #ff4444; margin: 0;">🐉 Monster Vault</h2>
+            <button class="ui-btn" style="background: #444;" onclick="toggleMonsterVault()">❌ Close Vault</button>
+        </div>
+
+        <div style="display: flex; flex-grow: 1; overflow: hidden;">
+            <div style="width: 300px; background: #15151a; border-right: 1px solid #333; display: flex; flex-direction: column;">
+                <div style="padding: 10px;">
+                    <button class="ui-btn" style="width: 100%; background: #4477ff;" onclick="openMonsterCreator()">+ Create Monster</button>
+                </div>
+                <ul id="monster-list" style="list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1;"></ul>
+            </div>
+            
+            <div id="monster-display" style="flex-grow: 1; padding: 30px; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start;">
+                <p style="color: #888;">Select a monster to view its stats.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="monster-creator-modal" class="hidden-modal modal-overlay" style="z-index: 3000;">
+        <div class="modal-box" style="width: 800px; max-height: 95vh; overflow-y: auto; text-align: left;">
+            <h2 style="color: white; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">Build a Monster</h2>
+            
+            <form id="monster-form" style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="mon-name" placeholder="Monster Name" class="mon-input" style="flex: 2;">
+                    <input type="text" id="mon-ac" placeholder="AC" class="mon-input" style="flex: 1;">
+                    <input type="text" id="mon-hp" placeholder="HP (e.g. 22)" class="mon-input" style="flex: 1;">
+                    <input type="text" id="mon-speed" placeholder="Speed" class="mon-input" style="flex: 1;">
+                </div>
+
+                <div style="display: flex; gap: 5px; justify-content: space-between; margin-top: 10px;">
+                    <input type="number" id="mon-str" placeholder="STR" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-dex" placeholder="DEX" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-con" placeholder="CON" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-int" placeholder="INT" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-wis" placeholder="WIS" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-cha" placeholder="CHA" class="mon-input" style="width: 15%;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="mon-saves" placeholder="Saving Throws (e.g. STR +17, CON +14)" class="mon-input">
+                    <input type="text" id="mon-skills" placeholder="Skills (e.g. Perception +14)" class="mon-input">
+                    <input type="text" id="mon-vulnerabilities" placeholder="Damage Vulnerabilities" class="mon-input">
+                    <input type="text" id="mon-resistances" placeholder="Damage Resistances" class="mon-input">
+                    <input type="text" id="mon-immunities" placeholder="Damage Immunities" class="mon-input">
+                    <input type="text" id="mon-cond-immunities" placeholder="Condition Immunities" class="mon-input">
+                    <input type="text" id="mon-senses" placeholder="Senses (e.g. Truesight 120 ft.)" class="mon-input">
+                    <input type="text" id="mon-languages" placeholder="Languages" class="mon-input">
+                </div>
+                <input type="text" id="mon-challenge" placeholder="Challenge (e.g. 23 (50,000 XP))" class="mon-input">
+
+                <h4 style="color: #ffcc00; margin-bottom: 0; margin-top: 15px;">Traits (Passives)</h4>
+                <div id="traits-container"></div>
+                <button type="button" class="ui-btn" style="background: #333; font-size: 11px;" onclick="addDynamicRow('traits-container')">+ Add Trait</button>
+
+                <h4 style="color: #ff4444; margin-bottom: 0; margin-top: 15px;">Actions</h4>
+                <div id="actions-container"></div>
+                <button type="button" class="ui-btn" style="background: #333; font-size: 11px;" onclick="addDynamicRow('actions-container')">+ Add Action</button>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="ui-btn" style="flex: 1; background: #4477ff; font-weight: bold;" onclick="saveMonster()">Save Monster</button>
+                    <button type="button" class="ui-btn" style="flex: 1; background: #444;" onclick="closeMonsterCreator()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/firebase-setup.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dice.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/initiative.js"></script>
+    <script src="js/monsters.js"></script>
+    <script src="js/whiteboard.js"></script>
 </body>
 </html>
