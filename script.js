@@ -33,7 +33,7 @@ function changeName() {
 }
 initializePlayer();
 
-// 3. UI TOGGLES (ADV/DIS & Sidebar)
+// 3. UI TOGGLES
 function toggleAdvDis(type) {
     let advBtn = document.getElementById("btn-adv");
     let disBtn = document.getElementById("btn-dis");
@@ -51,7 +51,7 @@ function toggleCharSheet() {
     if(sheet) sheet.classList.toggle("open");
 }
 
-// 4. SHOPPING CART LOGIC
+// 4. DICE POOL LOGIC
 let dicePool = {}; 
 function addToPool(sides) {
     if (!dicePool[sides]) dicePool[sides] = 0;
@@ -145,45 +145,23 @@ function rollPool() {
 }
 
 // 7. HISTORY & MODALS
-function openClearModal() {
-    let modal = document.getElementById("clear-modal");
-    if(modal) modal.classList.remove("hidden-modal");
-}
-function closeClearModal() {
-    let modal = document.getElementById("clear-modal");
-    if(modal) modal.classList.add("hidden-modal");
-}
-function confirmClearHistory() {
-    rollsRef.remove(); 
-    closeClearModal(); 
-}
+function openClearModal() { let modal = document.getElementById("clear-modal"); if(modal) modal.classList.remove("hidden-modal"); }
+function closeClearModal() { let modal = document.getElementById("clear-modal"); if(modal) modal.classList.add("hidden-modal"); }
+function confirmClearHistory() { rollsRef.remove(); closeClearModal(); }
 
-rollsRef.on('value', (snapshot) => {
-    if (!snapshot.exists()) {
-        let historyEl = document.getElementById("roll-history");
-        if(historyEl) historyEl.innerHTML = "";
-    }
-});
-
+rollsRef.on('value', (snapshot) => { if (!snapshot.exists()) { let historyEl = document.getElementById("roll-history"); if(historyEl) historyEl.innerHTML = ""; } });
 rollsRef.on('child_added', (snapshot) => {
     const data = snapshot.val();
     let timeString = "";
-    if (data.timestamp) {
-        let date = new Date(data.timestamp);
-        timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+    if (data.timestamp) { timeString = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
     let newRollMessage = document.createElement("li");
     newRollMessage.innerHTML = `
-        <div class="player-name">
-            ${data.player} 
-            <span style="color: #666; font-size: 10px; font-weight: normal; float: right;">${timeString}</span>
-        </div>
+        <div class="player-name">${data.player} <span style="color: #666; font-size: 10px; font-weight: normal; float: right;">${timeString}</span></div>
         <div class="roll-formula">${data.formula}</div>
         <div class="roll-output">
             <div class="roll-total">${data.total}</div>
             <div class="dice-grid">${data.diceHTML}</div>
-        </div>
-    `;
+        </div>`;
     let historyEl = document.getElementById("roll-history");
     if(historyEl) historyEl.prepend(newRollMessage);
 });
@@ -214,9 +192,9 @@ async function importDndBeyond(isManual = true) {
         if (!isManual && localStorage.getItem("dndCharData")) {
             charData = JSON.parse(localStorage.getItem("dndCharData"));
         } else {
-            let proxyUrl = `http://localhost:3000/api/dnd/${charId}`;
+            let proxyUrl = `http://localhost:3000/api/dnd/${charId}`; 
             let response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error(`Netlify proxy failed! Status: ${response.status}`);
+            if (!response.ok) throw new Error(`Node Proxy failed! Status: ${response.status}`);
             
             let rawData = await response.json();
             if (rawData.success === false) throw new Error(rawData.message || "Sheet is Private.");
@@ -253,11 +231,8 @@ async function importDndBeyond(isManual = true) {
             let finalScore = overrideScore > 0 ? overrideScore : (baseScore + bonusScore);
             let modifier = Math.floor((finalScore - 10) / 2);
             statMods[i] = modifier; 
-
             let sign = modifier >= 0 ? "+" : "";
-            statsHTML += `<button class="stat-btn" onclick="loadSkillToTray(${modifier})">
-                            ${statNames[i]}<br><span style="color:white; font-size:16px;">${sign}${modifier}</span>
-                          </button>`;
+            statsHTML += `<button class="stat-btn" onclick="loadSkillToTray(${modifier})">${statNames[i]}<br><span style="color:white; font-size:16px;">${sign}${modifier}</span></button>`;
         }
         document.getElementById("sheet-stats").innerHTML = statsHTML;
 
@@ -266,9 +241,7 @@ async function importDndBeyond(isManual = true) {
         for (let i = 0; i < 6; i++) {
             let totalSaveMod = statMods[i] + Math.floor(profBonus * getProfMultiplier(saveSubTypes[i]));
             let sign = totalSaveMod >= 0 ? "+" : "";
-            savesHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSaveMod})">
-                            <span>${statNames[i]}</span> <span class="skill-val">${sign}${totalSaveMod}</span>
-                          </button>`;
+            savesHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSaveMod})"><span>${statNames[i]}</span> <span class="skill-val">${sign}${totalSaveMod}</span></button>`;
         }
         document.getElementById("sheet-saves").innerHTML = savesHTML;
 
@@ -288,9 +261,7 @@ async function importDndBeyond(isManual = true) {
         skillList.forEach(skill => {
             let totalSkillMod = statMods[skill.statIdx] + Math.floor(profBonus * getProfMultiplier(skill.subType));
             let sign = totalSkillMod >= 0 ? "+" : "";
-            skillsHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSkillMod})">
-                            <span>${skill.name}</span> <span class="skill-val">${sign}${totalSkillMod}</span>
-                           </button>`;
+            skillsHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSkillMod})"><span>${skill.name}</span> <span class="skill-val">${sign}${totalSkillMod}</span></button>`;
         });
         document.getElementById("sheet-skills").innerHTML = skillsHTML;
 
@@ -310,8 +281,9 @@ async function importDndBeyond(isManual = true) {
                     
                     let magicBonus = item.definition.grantedModifiers?.find(m => m.type === "bonus" && m.subType === "magic")?.value || 0;
                     let totalDamageMod = baseMod + magicBonus;
+                    let attackMod = baseMod + profBonus + magicBonus;
 
-                    allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice, mod: totalDamageMod, uses: 0 });
+                    allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice, mod: totalDamageMod, attackMod: attackMod, uses: 0 });
                 }
             });
         }
@@ -327,7 +299,7 @@ async function importDndBeyond(isManual = true) {
                                 let statBonus = statMods[act.limitedUse.statModifierUsesId - 1] || 0;
                                 maxUses = Math.max(1, statBonus);
                             }
-                            allActions.push({ name: act.name, type: "Action", dice: "", mod: 0, uses: maxUses });
+                            allActions.push({ name: act.name, type: "Action", dice: "", mod: 0, attackMod: null, uses: maxUses });
                         }
                     });
                 }
@@ -339,10 +311,17 @@ async function importDndBeyond(isManual = true) {
 
         uniqueActions.forEach(act => {
             let btnHTML = "";
+            let buttons = [];
+
+            if (act.type === "Weapon" && act.attackMod !== null) {
+                let atkSign = act.attackMod >= 0 ? "+" : "";
+                buttons.push(`<button class="roll-action-btn" style="background:#444; border: 1px solid #666; margin-right: 4px;" onclick="loadSkillToTray(${act.attackMod})">⚔️ ${atkSign}${act.attackMod}</button>`);
+            }
             if (act.dice) {
                 let sign = act.mod >= 0 ? "+" : "";
-                btnHTML = `<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}', ${act.mod})">${act.dice} ${sign}${act.mod}</button>`;
+                buttons.push(`<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}', ${act.mod})">${act.dice} ${sign}${act.mod}</button>`);
             }
+            if (buttons.length > 0) btnHTML = `<div style="display:flex;">${buttons.join('')}</div>`;
 
             let usesHTML = "";
             if (act.uses > 0) {
@@ -355,103 +334,102 @@ async function importDndBeyond(isManual = true) {
                 usesHTML += `</div>`;
             }
 
-            actionsHTML += `<div class="action-card">
-                                <div>
-                                    <strong style="display:block; margin-bottom:3px; font-size:13px;">${act.name}</strong>
-                                    <span class="action-type">${act.type}</span>
-                                    ${usesHTML}
-                                </div>
-                                ${btnHTML}
-                            </div>`;
+            actionsHTML += `<div class="action-card"><div><strong style="display:block; margin-bottom:3px; font-size:13px;">${act.name}</strong><span class="action-type">${act.type}</span>${usesHTML}</div>${btnHTML}</div>`;
         });
 
-        // --- THE MASSIVE SPELL UPGRADE ---
+        // --- SPELLS ---
         let spellsHTML = "";
-        
-        // 1. We create 10 empty folders (Levels 0 through 9)
         let spellsByLevel = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[]};
 
-        // 2. We extract the spells and figure out their damage dice
-        if (charData.classSpells) {
-            charData.classSpells.forEach(cs => {
-                if (cs.spells) {
-                    cs.spells.forEach(spellObj => {
-                        let def = spellObj.definition;
-                        if (def && (def.level === 0 || spellObj.alwaysPrepared || spellObj.prepared)) {
-                            
-                            // Try to find the damage or healing dice (e.g. 8d6)
+        let spellSources = ['classSpells', 'raceSpells', 'featSpells'];
+        spellSources.forEach(source => {
+            if (charData[source]) {
+                charData[source].forEach(cs => {
+                    let spellList = cs.spells || [cs]; 
+                    spellList.forEach(spellObj => {
+                        let def = spellObj.definition || spellObj;
+                        if (def && (def.level === 0 || spellObj.alwaysPrepared || spellObj.prepared || source !== 'classSpells')) {
                             let diceString = "";
                             if (def.modifiers) {
                                 let dmgMod = def.modifiers.find(m => m.type === "damage" || m.type === "healing");
-                                if (dmgMod && dmgMod.die) {
-                                    diceString = dmgMod.die.diceString;
-                                }
+                                if (dmgMod && dmgMod.die) diceString = dmgMod.die.diceString;
                             }
-                            spellsByLevel[def.level].push({ name: def.name, level: def.level, dice: diceString });
+                            let maxUses = spellObj.limitedUse?.maxUses || 0;
+                            spellsByLevel[def.level].push({ name: def.name, level: def.level, dice: diceString, uses: maxUses });
                         }
                     });
-                }
+                });
+            }
+        });
+
+        let casterLevel = 0; let warlockLevel = 0;
+        if (charData.classes) {
+            charData.classes.forEach(cls => {
+                let name = cls.definition.name.toLowerCase();
+                let lvl = cls.level;
+                if (["wizard", "cleric", "druid", "sorcerer", "bard"].includes(name)) casterLevel += lvl;
+                else if (["paladin", "ranger"].includes(name)) casterLevel += Math.floor(lvl / 2);
+                else if (name === "artificer") casterLevel += Math.ceil(lvl / 2);
+                else if (cls.subclassDefinition && ["eldritch knight", "arcane trickster"].includes(cls.subclassDefinition.name.toLowerCase())) casterLevel += Math.floor(lvl / 3);
+                else if (name === "warlock") warlockLevel += lvl;
             });
         }
 
-        // 3. We loop through each folder and build the UI categories
+        const slotTable = [
+            [0,0,0,0,0,0,0,0,0], [2,0,0,0,0,0,0,0,0], [3,0,0,0,0,0,0,0,0], [4,2,0,0,0,0,0,0,0], [4,3,0,0,0,0,0,0,0],
+            [4,3,2,0,0,0,0,0,0], [4,3,3,0,0,0,0,0,0], [4,3,3,1,0,0,0,0,0], [4,3,3,2,0,0,0,0,0], [4,3,3,3,1,0,0,0,0],
+            [4,3,3,3,2,0,0,0,0], [4,3,3,3,2,1,0,0,0], [4,3,3,3,2,1,0,0,0], [4,3,3,3,2,1,1,0,0], [4,3,3,3,2,1,1,0,0],
+            [4,3,3,3,2,1,1,1,0], [4,3,3,3,2,1,1,1,0], [4,3,3,3,2,1,1,1,1], [4,3,3,3,3,1,1,1,1], [4,3,3,3,3,2,1,1,1],
+            [4,3,3,3,3,2,2,1,1]
+        ];
+
+        let warlockSlots = 0; let warlockSlotLevel = 0;
+        if (warlockLevel > 0) {
+            warlockSlots = warlockLevel < 2 ? 1 : (warlockLevel < 11 ? 2 : (warlockLevel < 17 ? 3 : 4));
+            warlockSlotLevel = Math.ceil(warlockLevel / 2);
+            if (warlockSlotLevel > 5) warlockSlotLevel = 5;
+        }
+
         for (let lvl = 0; lvl <= 9; lvl++) {
             let levelSpells = spellsByLevel[lvl];
-            if (levelSpells.length === 0) continue; // Skip empty spell levels
-
-            // Remove duplicates
+            if (levelSpells.length === 0) continue; 
             let uniqueSpells = Array.from(new Set(levelSpells.map(s => s.name))).map(name => levelSpells.find(s => s.name === name));
 
-            // Figure out how many spell slots you have for this level
             let maxSlots = 0;
-            if (charData.spellSlots) {
-                let slotInfo = charData.spellSlots.find(s => s.level === lvl);
-                if (slotInfo) maxSlots = slotInfo.available || 0;
-            }
-            // Fallback for Warlocks (Pact Magic)
-            if (maxSlots === 0 && charData.pactMagic) {
-                let pactInfo = charData.pactMagic.find(s => s.level === lvl);
-                if (pactInfo) maxSlots = pactInfo.available || 0;
-            }
+            if (lvl > 0 && casterLevel > 0 && casterLevel <= 20) maxSlots = slotTable[casterLevel][lvl - 1] || 0;
+            if (lvl === warlockSlotLevel) maxSlots += warlockSlots; 
 
-            // Draw the Spell Slots checkboxes next to the category header!
             let slotBoxesHTML = "";
             if (lvl > 0 && maxSlots > 0) {
                 slotBoxesHTML = `<div style="display:flex; gap: 2px;">`;
                 for (let i = 0; i < maxSlots; i++) {
                     let boxId = `chk-spell-lvl${lvl}-${i}`;
                     let isChecked = savedCheckboxes[boxId] ? "checked" : "";
-                    // Notice the special class 'lvl-${lvl}-slot'. We use this to auto-check them later!
-                    slotBoxesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox lvl-${lvl}-slot" onchange="saveCheckboxState(this)" ${isChecked} style="border-color: #4477ff;">`;
+                    slotBoxesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox lvl-${lvl}-slot" onchange="saveCheckboxState(this)" ${isChecked} style="border-color: #4477ff; width:16px; height:16px;">`;
                 }
                 slotBoxesHTML += `</div>`;
             }
 
             let lvlHeader = lvl === 0 ? "Cantrips" : `Level ${lvl} Spells`;
-            
-            // Add the Header and the Slots
-            spellsHTML += `<div style="background:#15151a; padding:8px 10px; margin-top:15px; margin-bottom:5px; border-bottom: 2px solid #4477ff; color:#ffcc00; font-size:14px; font-weight:bold; display: flex; justify-content: space-between; align-items: center; border-radius: 4px;">
-                              <span>${lvlHeader}</span>
-                              ${slotBoxesHTML}
-                           </div>`;
+            spellsHTML += `<div style="background:#15151a; padding:8px 10px; margin-top:15px; margin-bottom:5px; border-bottom: 2px solid #4477ff; color:#ffcc00; font-size:14px; font-weight:bold; display: flex; justify-content: space-between; align-items: center; border-radius: 4px;"><span>${lvlHeader}</span>${slotBoxesHTML}</div>`;
 
-            // Add the Spells beneath the header
             uniqueSpells.forEach(spell => {
                 let btnHTML = "";
-                
-                // If it has damage, give it a blue Roll button
-                if (spell.dice) {
-                    btnHTML = `<button class="roll-action-btn" style="background:#4477ff;" onclick="castSpell(${spell.level}, '${spell.dice}')">Roll ${spell.dice}</button>`;
-                } 
-                // If it doesn't have damage but uses a slot, give it a Use Slot button
-                else if (spell.level > 0) {
-                    btnHTML = `<button class="roll-action-btn" style="background:#555; border: 1px solid #777;" onclick="castSpell(${spell.level}, null)">Use Slot</button>`;
+                let personalUsesHTML = "";
+                if (spell.uses > 0) {
+                    personalUsesHTML = `<div style="margin-top: 4px; display:flex; gap:2px;">`;
+                    for(let i=0; i < spell.uses; i++) {
+                        let boxId = `chk-personalspell-${spell.name.replace(/[^a-zA-Z0-9]/g, '')}-${i}`;
+                        let isChecked = savedCheckboxes[boxId] ? "checked" : "";
+                        personalUsesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox personal-spell-slot" onchange="saveCheckboxState(this)" ${isChecked} style="border-color: #aa44ff; width:14px; height:14px;">`;
+                    }
+                    personalUsesHTML += `</div>`;
                 }
+                
+                if (spell.dice) btnHTML = `<button class="roll-action-btn" style="background:#4477ff;" onclick="castSpell(${spell.level}, '${spell.dice}')">Roll ${spell.dice}</button>`;
+                else if (spell.level > 0) btnHTML = `<button class="roll-action-btn" style="background:#555; border: 1px solid #777;" onclick="castSpell(${spell.level}, null)">Use Slot</button>`;
 
-                spellsHTML += `<div class="action-card" style="border-left: 3px solid #4477ff;">
-                                    <strong style="display:block; font-size:13px;">${spell.name}</strong>
-                                    ${btnHTML}
-                                </div>`;
+                spellsHTML += `<div class="action-card" style="border-left: 3px solid #4477ff;"><div><strong style="display:block; font-size:13px;">${spell.name}</strong>${personalUsesHTML}</div>${btnHTML}</div>`;
             });
         }
 
@@ -472,33 +450,23 @@ async function importDndBeyond(isManual = true) {
     }
 }
 
-// 9. AUTO-LOAD ON STARTUP
-if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) {
-    importDndBeyond(false); 
-}
+if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) importDndBeyond(false); 
 
-// 10. ACTION & SKILL TRAY LOADERS
-
+// 10. ACTION LOADERS
 function loadSkillToTray(modifier = 0) {
-    clearPool(); 
-    addToPool(20); 
+    clearPool(); addToPool(20); 
     let modInput = document.getElementById("modifier-input");
     if(modInput) modInput.value = modifier;
 }
 
 function loadActionToTray(diceString, modifier = 0) {
     if (!diceString) return;
-    
     let parts = diceString.split('d');
     if (parts.length === 2) {
         let count = parseInt(parts[0]) || 1;
         let sides = parseInt(parts[1]);
-        
-        for (let i = 0; i < count; i++) {
-            addToPool(sides);
-        }
+        for (let i = 0; i < count; i++) addToPool(sides);
     }
-    
     let modInput = document.getElementById("modifier-input");
     if(modInput) {
         let currentMod = parseInt(modInput.value) || 0;
@@ -506,35 +474,20 @@ function loadActionToTray(diceString, modifier = 0) {
     }
 }
 
-// 11. THE MAGIC CASTER ENGINE
 function castSpell(level, diceString) {
-    // 1. Roll the dice if it's an attack or healing spell
-    if (diceString && diceString !== "null") {
-        loadActionToTray(diceString, 0); 
-    }
-
-    // 2. If it's a leveled spell (not a Cantrip), automatically consume a slot!
+    if (diceString && diceString !== "null") loadActionToTray(diceString, 0); 
     if (level > 0) {
-        // Find all the checkboxes we created for this specific spell level
         let slots = document.querySelectorAll(`.lvl-${level}-slot`);
-        
         if (slots.length > 0) {
             let usedSlot = false;
-            
-            // Loop through them and check off the first one that is empty
             for (let i = 0; i < slots.length; i++) {
                 if (!slots[i].checked) {
                     slots[i].checked = true;
-                    saveCheckboxState(slots[i]); // Save it to the backpack
-                    usedSlot = true;
-                    break; // Stop looking, we only want to burn one slot!
+                    saveCheckboxState(slots[i]); 
+                    usedSlot = true; break; 
                 }
             }
-            
-            // If they were ALL checked already, warn the player!
-            if (!usedSlot) {
-                alert(`Warning: You are completely out of Level ${level} spell slots!`);
-            }
+            if (!usedSlot) alert(`Warning: You are completely out of Level ${level} spell slots!`);
         }
     }
 }

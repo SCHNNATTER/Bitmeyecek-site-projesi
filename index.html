@@ -1,96 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Tavern Dice Roller</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎲</text></svg>">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D Virtual Tabletop</title>
     <link rel="stylesheet" href="style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 </head>
 <body>
 
-    <div id="top-section">
-        <div id="wallpaper-area">
-            </div>
+    <div class="app-container">
         
+        <div class="main-column">
+            
+            <div id="whiteboard-wrapper">
+                <div id="whiteboard-toolbar">
+                    <button class="wb-btn active" id="btn-select" onclick="setMode('select')">👆 Select/Move</button>
+                    <button class="wb-btn" id="btn-draw" onclick="setMode('draw')">✏️ Draw</button>
+                    <button class="wb-btn" onclick="document.getElementById('image-upload').click()">🖼️ Add Map/Token</button>
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="addImage(event)">
+                    <button class="wb-btn" style="background: #882222;" onclick="clearBoard()">🗑️ Clear</button>
+                    <span class="wb-hint">Scroll to Zoom | Alt + Drag to Pan | Del to Delete</span>
+                </div>
+                <div id="canvas-container">
+                    <canvas id="whiteboard"></canvas>
+                </div>
+            </div>
+
+            <div id="dice-section">
+                <div class="dice-controls-top">
+                    <button class="ui-btn" onclick="clearPool()">Clear</button>
+                    <div id="current-pool" class="pool-display">Select dice to roll...</div>
+                    <div class="adv-dis-group">
+                        <button id="btn-adv" class="ui-btn" onclick="toggleAdvDis('adv')">ADV</button>
+                        <button id="btn-dis" class="ui-btn" onclick="toggleAdvDis('dis')">DIS</button>
+                    </div>
+                    <span style="color: white; font-weight: bold; font-size: 20px;">+</span>
+                    <input type="number" id="modifier-input" value="0">
+                    <button class="ui-btn roll-btn" onclick="rollPool()">ROLL</button>
+                </div>
+                <div class="dice-buttons-bottom">
+                    <button class="dice-btn" onclick="addToPool(4)">d4</button>
+                    <button class="dice-btn" onclick="addToPool(6)">d6</button>
+                    <button class="dice-btn" onclick="addToPool(8)">d8</button>
+                    <button class="dice-btn" onclick="addToPool(10)">d10</button>
+                    <button class="dice-btn" onclick="addToPool(12)">d12</button>
+                    <button class="dice-btn" onclick="addToPool(20)">d20</button>
+                    <button class="dice-btn" onclick="addToPool(100)">d100</button>
+                </div>
+            </div>
+            
+        </div>
+
         <div id="sidebar">
             <div class="sidebar-header">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>Roll History</span>
-                    <button onclick="openClearModal()" style="background: #2a2a35; border: 1px solid #444; color: #aaa; border-radius: 3px; cursor: pointer; font-size: 10px; padding: 3px 6px;">Clear</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: white;">Roll History</h3>
+                    <button class="ui-btn" style="padding: 2px 6px; font-size: 10px;" onclick="openClearModal()">Clear</button>
                 </div>
-                
-                <div id="player-profile">
-                    Playing as: <span id="display-name">Mysterious Stranger</span> 
-                    <button id="change-name-btn" onclick="changeName()">Change</button>
-                    <br>
-                    <button id="import-btn" onclick="importDndBeyond()">Import from D&D Beyond</button>
-                    <button id="open-sheet-btn" onclick="toggleCharSheet()">Open Sheet</button>
+                <div style="font-size: 12px; color: #aaa; margin-bottom: 10px; text-align: right;">
+                    Playing as: <strong id="display-name" style="color: #ffcc00;">Mysterious Stranger</strong> 
+                    <a href="#" style="color: #4477ff; margin-left: 5px;" onclick="changeName()">Change</a>
                 </div>
+                <button class="import-btn" onclick="importDndBeyond(true)">Import from D&D Beyond</button>
+                <button class="ui-btn" style="width: 100%; margin-top: 5px; background: #222;" onclick="toggleCharSheet()">Toggle Character Sheet</button>
             </div>
-            <ul id="roll-history">
-                </ul>
-        </div>
-    </div>
 
-    <div id="staging-tray">
-        <button id="clear-btn" onclick="clearPool()">Clear</button>
-        <div id="current-pool">Select dice to roll...</div>
-        
-        <div class="modifier-container">
-            <button id="btn-adv" class="toggle-btn" onclick="toggleAdvDis('adv')">ADV</button>
-            <button id="btn-dis" class="toggle-btn" onclick="toggleAdvDis('dis')">DIS</button>
-            <span>+</span>
-            <input type="number" id="modifier-input" value="0" />
+            <ul id="roll-history"></ul>
         </div>
-        
-        <button id="roll-btn" onclick="rollPool()">ROLL</button>
-    </div>
 
-    <div id="bottom-bar">
-        <button class="dice-button" onclick="addToPool(4)">d4</button>
-        <button class="dice-button" onclick="addToPool(6)">d6</button>
-        <button class="dice-button" onclick="addToPool(8)">d8</button>
-        <button class="dice-button" onclick="addToPool(10)">d10</button>
-        <button class="dice-button" onclick="addToPool(12)">d12</button>
-        <button class="dice-button" onclick="addToPool(20)">d20</button>
-        <button class="dice-button" onclick="addToPool(100)">d100</button>
-    </div>
-
-    <div id="char-sidebar" class="hidden-sheet">
-        <div class="sheet-header">
-            <h2 id="sheet-name">No Character Loaded</h2>
-            <button onclick="toggleCharSheet()" class="close-btn">X</button>
-        </div>
-        <div class="sheet-content">
-            <h3>Ability Modifiers (Click to use)</h3>
-            <div id="sheet-stats">
-                <p style="color: #666; font-size: 12px;">Import a character to see stats...</p>
+        <div id="char-sidebar">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px;">
+                <h2 id="sheet-name" style="color: white; margin: 0;">Character Name</h2>
+                <button class="ui-btn" style="background: #c53131; padding: 5px 10px; font-size: 12px;" onclick="toggleCharSheet()">❌ Close</button>
             </div>
             
-            <h3>Saving Throws</h3>
-            <div id="sheet-saves" class="grid-container"></div>
-
-            <h3>Skills</h3>
-            <div id="sheet-skills" class="grid-container"></div>
+            <h4 style="color: #aaa; margin-bottom: 5px;">Attributes</h4>
+            <div id="sheet-stats" class="stat-grid"></div>
             
-            <h3>Actions & Spells</h3>
-            <div id="sheet-actions">
-                <p style="color: #666; font-size: 12px;">Coming soon...</p>
+            <h4 style="color: #aaa; margin-bottom: 5px; margin-top: 15px;">Saving Throws</h4>
+            <div id="sheet-saves" class="skill-list"></div>
+            
+            <h4 style="color: #aaa; margin-bottom: 5px; margin-top: 15px;">Skills</h4>
+            <div id="sheet-skills" class="skill-list"></div>
+            
+            <div id="sheet-actions"></div>
+        </div>
+
+        <div id="clear-modal" class="hidden-modal modal-overlay">
+            <div class="modal-box">
+                <p style="color: white;">Clear the entire campaign's roll history?</p>
+                <button class="ui-btn" onclick="confirmClearHistory()" style="background: #c53131;">Yes, Clear It</button>
+                <button class="ui-btn" onclick="closeClearModal()">Cancel</button>
             </div>
         </div>
+
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<div id="clear-modal" class="hidden-modal">
-        <div class="modal-content">
-            <h3>⚠️ Clear History?</h3>
-            <p>Are you sure you want to delete all rolls? This will wipe the history for everyone at the table!</p>
-            <div class="modal-buttons">
-                <button class="modal-btn cancel-btn" onclick="closeClearModal()">Cancel</button>
-                <button class="modal-btn confirm-btn" onclick="confirmClearHistory()">Yes, Wipe It</button>
-            </div>
-        </div>
-    </div>
     <script src="script.js"></script>
+    <script src="whiteboard.js"></script>
 </body>
 </html>
