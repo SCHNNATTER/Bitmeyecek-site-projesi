@@ -246,7 +246,6 @@ async function importDndBeyond(isManual = true) {
         let statNames = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
         let statsHTML = "";
 
-        // THE FIX: Changed 'onclick' to use our new loadSkillToTray function!
         for (let i = 0; i < 6; i++) {
             let baseScore = charData.stats[i]?.value || 10;
             let bonusScore = charData.bonusStats[i]?.value || 0;
@@ -366,36 +365,92 @@ async function importDndBeyond(isManual = true) {
                             </div>`;
         });
 
-        // --- SPELLS ---
-        let spellsHTML = "<h4 style='color:#4477ff; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Prepared Spells</h4>";
-        let allSpells = [];
+        // --- THE MASSIVE SPELL UPGRADE ---
+        let spellsHTML = "";
+        
+        // 1. We create 10 empty folders (Levels 0 through 9)
+        let spellsByLevel = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[]};
 
+        // 2. We extract the spells and figure out their damage dice
         if (charData.classSpells) {
             charData.classSpells.forEach(cs => {
                 if (cs.spells) {
                     cs.spells.forEach(spellObj => {
                         let def = spellObj.definition;
                         if (def && (def.level === 0 || spellObj.alwaysPrepared || spellObj.prepared)) {
-                            allSpells.push({ name: def.name, level: def.level });
+                            
+                            // Try to find the damage or healing dice (e.g. 8d6)
+                            let diceString = "";
+                            if (def.modifiers) {
+                                let dmgMod = def.modifiers.find(m => m.type === "damage" || m.type === "healing");
+                                if (dmgMod && dmgMod.die) {
+                                    diceString = dmgMod.die.diceString;
+                                }
+                            }
+                            spellsByLevel[def.level].push({ name: def.name, level: def.level, dice: diceString });
                         }
                     });
                 }
             });
         }
 
-        allSpells.sort((a, b) => a.level - b.level);
-        let uniqueSpells = Array.from(new Set(allSpells.map(s => s.name))).map(name => allSpells.find(s => s.name === name));
+        // 3. We loop through each folder and build the UI categories
+        for (let lvl = 0; lvl <= 9; lvl++) {
+            let levelSpells = spellsByLevel[lvl];
+            if (levelSpells.length === 0) continue; // Skip empty spell levels
 
-        if (uniqueSpells.length === 0) {
-            spellsHTML += `<p style="font-size:12px; color:#666; font-style: italic;">No spells prepared (or martial class).</p>`;
-        } else {
+            // Remove duplicates
+            let uniqueSpells = Array.from(new Set(levelSpells.map(s => s.name))).map(name => levelSpells.find(s => s.name === name));
+
+            // Figure out how many spell slots you have for this level
+            let maxSlots = 0;
+            if (charData.spellSlots) {
+                let slotInfo = charData.spellSlots.find(s => s.level === lvl);
+                if (slotInfo) maxSlots = slotInfo.available || 0;
+            }
+            // Fallback for Warlocks (Pact Magic)
+            if (maxSlots === 0 && charData.pactMagic) {
+                let pactInfo = charData.pactMagic.find(s => s.level === lvl);
+                if (pactInfo) maxSlots = pactInfo.available || 0;
+            }
+
+            // Draw the Spell Slots checkboxes next to the category header!
+            let slotBoxesHTML = "";
+            if (lvl > 0 && maxSlots > 0) {
+                slotBoxesHTML = `<div style="display:flex; gap: 2px;">`;
+                for (let i = 0; i < maxSlots; i++) {
+                    let boxId = `chk-spell-lvl${lvl}-${i}`;
+                    let isChecked = savedCheckboxes[boxId] ? "checked" : "";
+                    // Notice the special class 'lvl-${lvl}-slot'. We use this to auto-check them later!
+                    slotBoxesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox lvl-${lvl}-slot" onchange="saveCheckboxState(this)" ${isChecked} style="border-color: #4477ff;">`;
+                }
+                slotBoxesHTML += `</div>`;
+            }
+
+            let lvlHeader = lvl === 0 ? "Cantrips" : `Level ${lvl} Spells`;
+            
+            // Add the Header and the Slots
+            spellsHTML += `<div style="background:#15151a; padding:8px 10px; margin-top:15px; margin-bottom:5px; border-bottom: 2px solid #4477ff; color:#ffcc00; font-size:14px; font-weight:bold; display: flex; justify-content: space-between; align-items: center; border-radius: 4px;">
+                              <span>${lvlHeader}</span>
+                              ${slotBoxesHTML}
+                           </div>`;
+
+            // Add the Spells beneath the header
             uniqueSpells.forEach(spell => {
-                let lvlText = spell.level === 0 ? "Cantrip" : `Lvl ${spell.level}`;
-                spellsHTML += `<div class="action-card">
-                                    <div>
-                                        <strong style="display:block; margin-bottom:3px; font-size:13px;">${spell.name}</strong>
-                                        <span class="spell-type">${lvlText}</span>
-                                    </div>
+                let btnHTML = "";
+                
+                // If it has damage, give it a blue Roll button
+                if (spell.dice) {
+                    btnHTML = `<button class="roll-action-btn" style="background:#4477ff;" onclick="castSpell(${spell.level}, '${spell.dice}')">Roll ${spell.dice}</button>`;
+                } 
+                // If it doesn't have damage but uses a slot, give it a Use Slot button
+                else if (spell.level > 0) {
+                    btnHTML = `<button class="roll-action-btn" style="background:#555; border: 1px solid #777;" onclick="castSpell(${spell.level}, null)">Use Slot</button>`;
+                }
+
+                spellsHTML += `<div class="action-card" style="border-left: 3px solid #4477ff;">
+                                    <strong style="display:block; font-size:13px;">${spell.name}</strong>
+                                    ${btnHTML}
                                 </div>`;
             });
         }
@@ -424,34 +479,62 @@ if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) {
 
 // 10. ACTION & SKILL TRAY LOADERS
 
-// NEW: This fires when you click a Stat, Save, or Skill. It wipes the tray and drops a fresh d20.
 function loadSkillToTray(modifier = 0) {
-    clearPool(); // Clear whatever is in there
-    addToPool(20); // Add a 1d20
+    clearPool(); 
+    addToPool(20); 
     let modInput = document.getElementById("modifier-input");
     if(modInput) modInput.value = modifier;
 }
 
-// UPDATED: This fires when you click weapon damage. It NO LONGER clears the tray, meaning you can stack it!
 function loadActionToTray(diceString, modifier = 0) {
     if (!diceString) return;
     
-    // Split "1d6" into count (1) and sides (6)
     let parts = diceString.split('d');
     if (parts.length === 2) {
         let count = parseInt(parts[0]) || 1;
         let sides = parseInt(parts[1]);
         
-        // Stack the dice!
         for (let i = 0; i < count; i++) {
             addToPool(sides);
         }
     }
     
-    // Stack the modifiers! (e.g., clicking 1d6 + 5 twice makes the modifier 10)
     let modInput = document.getElementById("modifier-input");
     if(modInput) {
         let currentMod = parseInt(modInput.value) || 0;
         modInput.value = currentMod + modifier; 
+    }
+}
+
+// 11. THE MAGIC CASTER ENGINE
+function castSpell(level, diceString) {
+    // 1. Roll the dice if it's an attack or healing spell
+    if (diceString && diceString !== "null") {
+        loadActionToTray(diceString, 0); 
+    }
+
+    // 2. If it's a leveled spell (not a Cantrip), automatically consume a slot!
+    if (level > 0) {
+        // Find all the checkboxes we created for this specific spell level
+        let slots = document.querySelectorAll(`.lvl-${level}-slot`);
+        
+        if (slots.length > 0) {
+            let usedSlot = false;
+            
+            // Loop through them and check off the first one that is empty
+            for (let i = 0; i < slots.length; i++) {
+                if (!slots[i].checked) {
+                    slots[i].checked = true;
+                    saveCheckboxState(slots[i]); // Save it to the backpack
+                    usedSlot = true;
+                    break; // Stop looking, we only want to burn one slot!
+                }
+            }
+            
+            // If they were ALL checked already, warn the player!
+            if (!usedSlot) {
+                alert(`Warning: You are completely out of Level ${level} spell slots!`);
+            }
+        }
     }
 }
