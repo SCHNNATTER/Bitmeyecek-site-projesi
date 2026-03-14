@@ -307,3 +307,8 @@ async function importDndBeyond(isManual = true) {
         document.getElementById("display-name").innerText = currentPlayerName; 
     }
 }
+// --- 9. AUTO-LOAD SAVED CHARACTER ---
+// If the browser remembers a character ID, secretly pull the stats in the background when the page opens!
+if (localStorage.getItem("dndCharId")) {
+    importDndBeyond(false); // The 'false' tells the function to do it silently without prompting!
+}
