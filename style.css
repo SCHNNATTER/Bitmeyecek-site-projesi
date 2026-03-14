@@ -58,10 +58,20 @@ body {
     display: flex; 
     flex-direction: column; 
 }
-
 #char-sidebar.open { 
     left: 0; /* Snaps to the left edge of the screen when opened */
 }
+.sheet-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background-color: #15151a; border-bottom: 2px solid #2a2a35; color: #ffcc00; }
+.sheet-header h2 { margin: 0; font-size: 18px; }
+.close-btn { background: #c53131; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
+.sheet-content { padding: 15px; overflow-y: auto; color: #ccc; }
+.sheet-content h3 { border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 20px; font-size: 14px; color: #888; }
+.stat-btn { background: #2a2a35; color: #44ff44; border: 1px solid #555; padding: 8px 12px; margin: 4px; border-radius: 5px; cursor: pointer; font-weight: bold; width: calc(33% - 12px); }
+.stat-btn:hover { background-color: #444; border-color: #ffcc00; }
+.grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-top: 10px; }
+.skill-btn { background: #2a2a35; color: #ddd; border: 1px solid #444; padding: 6px 8px; border-radius: 4px; cursor: pointer; text-align: left; display: flex; justify-content: space-between; font-size: 12px; }
+.skill-btn:hover { background-color: #444; border-color: #ffcc00; }
+.skill-val { color: #44ff44; font-weight: bold; }
 
 /* --- CUSTOM WARNING MODAL --- */
 .hidden-modal { 
