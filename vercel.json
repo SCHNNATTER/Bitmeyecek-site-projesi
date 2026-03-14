@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/dnd/:path*",
+      "destination": "https://character-service.dndbeyond.com/character/v5/character/:path*"
+    }
+  ]
+}
