@@ -188,23 +188,17 @@ rollsRef.on('child_added', (snapshot) => {
     if(historyEl) historyEl.prepend(newRollMessage);
 });
 
-
-// --- NEW: CHECKBOX PERSISTENCE SYSTEM ---
+// CHECKBOX PERSISTENCE
 function saveCheckboxState(checkboxElement) {
-    // Grab our saved checkbox states (or create a new blank list if none exist)
     let states = JSON.parse(localStorage.getItem("dndCheckboxStates") || "{}");
-    // Save whether this specific box is checked or not
     states[checkboxElement.id] = checkboxElement.checked;
-    // Put it back in the backpack
     localStorage.setItem("dndCheckboxStates", JSON.stringify(states));
 }
 
-
-// 8. D&D BEYOND INTEGRATION (WITH DATA CACHING)
+// 8. D&D BEYOND INTEGRATION 
 async function importDndBeyond(isManual = true) {
     let charId = localStorage.getItem("dndCharId");
 
-    // Ask for ID if they forced a sync OR if we don't have one
     if (isManual || !charId) {
         let charInput = prompt("Enter your D&D Beyond Character ID to Sync:", charId || "");
         if (!charInput || charInput.trim() === "") return;
@@ -217,12 +211,9 @@ async function importDndBeyond(isManual = true) {
     try {
         let charData;
 
-        // THE CACHE SYSTEM: If auto-loading AND we have saved data, use the saved data!
         if (!isManual && localStorage.getItem("dndCharData")) {
             charData = JSON.parse(localStorage.getItem("dndCharData"));
-        } 
-        // Otherwise, run the Heist! (We do this if they click the button manually)
-        else {
+        } else {
             let proxyUrl = `/api/dnd/${charId}`; 
             let response = await fetch(proxyUrl);
             if (!response.ok) throw new Error(`Netlify proxy failed! Status: ${response.status}`);
@@ -231,8 +222,6 @@ async function importDndBeyond(isManual = true) {
             if (rawData.success === false) throw new Error(rawData.message || "Sheet is Private.");
             
             charData = rawData.data;
-            
-            // Save this fresh data to the local backpack so we can use it later
             localStorage.setItem("dndCharData", JSON.stringify(charData));
         }
 
@@ -257,6 +246,7 @@ async function importDndBeyond(isManual = true) {
         let statNames = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
         let statsHTML = "";
 
+        // THE FIX: Changed 'onclick' to use our new loadSkillToTray function
         for (let i = 0; i < 6; i++) {
             let baseScore = charData.stats[i]?.value || 10;
             let bonusScore = charData.bonusStats[i]?.value || 0;
@@ -266,7 +256,7 @@ async function importDndBeyond(isManual = true) {
             statMods[i] = modifier; 
 
             let sign = modifier >= 0 ? "+" : "";
-            statsHTML += `<button class="stat-btn" onclick="document.getElementById('modifier-input').value = ${modifier}">
+            statsHTML += `<button class="stat-btn" onclick="loadSkillToTray(${modifier})">
                             ${statNames[i]}<br><span style="color:white; font-size:16px;">${sign}${modifier}</span>
                           </button>`;
         }
@@ -277,7 +267,7 @@ async function importDndBeyond(isManual = true) {
         for (let i = 0; i < 6; i++) {
             let totalSaveMod = statMods[i] + Math.floor(profBonus * getProfMultiplier(saveSubTypes[i]));
             let sign = totalSaveMod >= 0 ? "+" : "";
-            savesHTML += `<button class="skill-btn" onclick="document.getElementById('modifier-input').value = ${totalSaveMod}">
+            savesHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSaveMod})">
                             <span>${statNames[i]}</span> <span class="skill-val">${sign}${totalSaveMod}</span>
                           </button>`;
         }
@@ -299,13 +289,13 @@ async function importDndBeyond(isManual = true) {
         skillList.forEach(skill => {
             let totalSkillMod = statMods[skill.statIdx] + Math.floor(profBonus * getProfMultiplier(skill.subType));
             let sign = totalSkillMod >= 0 ? "+" : "";
-            skillsHTML += `<button class="skill-btn" onclick="document.getElementById('modifier-input').value = ${totalSkillMod}">
+            skillsHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSkillMod})">
                             <span>${skill.name}</span> <span class="skill-val">${sign}${totalSkillMod}</span>
                            </button>`;
         });
         document.getElementById("sheet-skills").innerHTML = skillsHTML;
 
-        // --- WEAPONS, MODIFIERS, & CHECKBOXES ---
+        // --- WEAPONS & ACTIONS ---
         let actionsHTML = "<h4 style='color:#ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Weapons & Actions</h4>";
         let allActions = [];
         let strMod = statMods[0]; let dexMod = statMods[1];
@@ -346,8 +336,6 @@ async function importDndBeyond(isManual = true) {
         }
 
         let uniqueActions = Array.from(new Set(allActions.map(a => a.name))).map(name => allActions.find(a => a.name === name));
-
-        // Load the saved checkbox states from the backpack
         let savedCheckboxes = JSON.parse(localStorage.getItem("dndCheckboxStates") || "{}");
 
         uniqueActions.forEach(act => {
@@ -361,12 +349,8 @@ async function importDndBeyond(isManual = true) {
             if (act.uses > 0) {
                 usesHTML = `<div style="margin-top: 6px;">`;
                 for(let i=0; i < act.uses; i++) {
-                    // Create a unique ID for this specific box (e.g. "chk-ActionSurge-0")
                     let boxId = `chk-${act.name.replace(/[^a-zA-Z0-9]/g, '')}-${i}`;
-                    
-                    // Check our backpack. Was this box checked last time?
                     let isChecked = savedCheckboxes[boxId] ? "checked" : "";
-                    
                     usesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox" onchange="saveCheckboxState(this)" ${isChecked}>`;
                 }
                 usesHTML += `</div>`;
@@ -438,17 +422,36 @@ if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) {
     importDndBeyond(false); 
 }
 
-// 10. ACTION TRAY LOADER
+// 10. ACTION & SKILL TRAY LOADERS
+
+// NEW: This fires when you click a Stat, Save, or Skill. It wipes the tray and drops a fresh d20.
+function loadSkillToTray(modifier = 0) {
+    clearPool(); // Clear whatever is in there
+    addToPool(20); // Add a 1d20
+    let modInput = document.getElementById("modifier-input");
+    if(modInput) modInput.value = modifier;
+}
+
+// UPDATED: This fires when you click weapon damage. It NO LONGER clears the tray, meaning you can stack it!
 function loadActionToTray(diceString, modifier = 0) {
-    clearPool(); 
     if (!diceString) return;
     
+    // Split "1d6" into count (1) and sides (6)
     let parts = diceString.split('d');
     if (parts.length === 2) {
         let count = parseInt(parts[0]) || 1;
         let sides = parseInt(parts[1]);
-        for (let i = 0; i < count; i++) addToPool(sides);
+        
+        // Stack the dice!
+        for (let i = 0; i < count; i++) {
+            addToPool(sides);
+        }
     }
+    
+    // Stack the modifiers! (e.g., clicking 1d6 + 5 twice makes the modifier 10)
     let modInput = document.getElementById("modifier-input");
-    if(modInput) modInput.value = modifier;
+    if(modInput) {
+        let currentMod = parseInt(modInput.value) || 0;
+        modInput.value = currentMod + modifier; 
+    }
 }
