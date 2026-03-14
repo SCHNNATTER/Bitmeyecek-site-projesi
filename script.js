@@ -214,7 +214,7 @@ async function importDndBeyond(isManual = true) {
         if (!isManual && localStorage.getItem("dndCharData")) {
             charData = JSON.parse(localStorage.getItem("dndCharData"));
         } else {
-            let proxyUrl = `/api/dnd/${charId}`; 
+            let proxyUrl = `http://localhost:3000/api/dnd/${charId}`;
             let response = await fetch(proxyUrl);
             if (!response.ok) throw new Error(`Netlify proxy failed! Status: ${response.status}`);
             
