@@ -43,31 +43,37 @@ body {
 #btn-dis.active { color: #ff4444; border-color: #ff4444; background-color: #220a0a; }
 .dropped-die { opacity: 0.4; text-decoration: line-through; background-color: #555 !important; border-color: #333 !important; }
 
-/* Character Sidebar */
+/* --- CHARACTER SIDEBAR --- */
 #char-sidebar { 
     position: fixed; 
     top: 0; 
-    left: -400px; /* Changed from right to left to hide off-screen */
+    left: -400px; /* Hidden off-screen to the left */
     width: 350px; 
     height: 100vh; 
     background-color: #1a1a24; 
-    border-right: 2px solid #2a2a35; /* Moved the border to the right edge */
-    transition: left 0.3s ease; /* Animate the left side instead of right */
-    box-shadow: 5px 0 15px rgba(0,0,0,0.8); /* Flipped the shadow to cast to the right */
+    border-right: 2px solid #2a2a35; /* Border on the right edge */
+    transition: left 0.3s ease; /* Smooth slide animation */
+    box-shadow: 5px 0 15px rgba(0,0,0,0.8); /* Shadow casts to the right */
     z-index: 1000; 
     display: flex; 
     flex-direction: column; 
 }
+
 #char-sidebar.open { 
-    left: 0; /* Snaps to the left edge of the screen when opened */
+    left: 0; /* Snaps to the left edge when opened */
 }
+
 .sheet-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background-color: #15151a; border-bottom: 2px solid #2a2a35; color: #ffcc00; }
 .sheet-header h2 { margin: 0; font-size: 18px; }
 .close-btn { background: #c53131; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
 .sheet-content { padding: 15px; overflow-y: auto; color: #ccc; }
 .sheet-content h3 { border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 20px; font-size: 14px; color: #888; }
+
+/* The Cool Stat Buttons */
 .stat-btn { background: #2a2a35; color: #44ff44; border: 1px solid #555; padding: 8px 12px; margin: 4px; border-radius: 5px; cursor: pointer; font-weight: bold; width: calc(33% - 12px); }
 .stat-btn:hover { background-color: #444; border-color: #ffcc00; }
+
+/* The Cool Skills/Saves Grid */
 .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-top: 10px; }
 .skill-btn { background: #2a2a35; color: #ddd; border: 1px solid #444; padding: 6px 8px; border-radius: 4px; cursor: pointer; text-align: left; display: flex; justify-content: space-between; font-size: 12px; }
 .skill-btn:hover { background-color: #444; border-color: #ffcc00; }
