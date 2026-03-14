@@ -47,7 +47,8 @@ function toggleAdvDis(type) {
 }
 
 function toggleCharSheet() {
-    document.getElementById("char-sidebar").classList.toggle("open");
+    let sheet = document.getElementById("char-sidebar");
+    if(sheet) sheet.classList.toggle("open");
 }
 
 // 4. SHOPPING CART LOGIC
@@ -68,7 +69,9 @@ function updateTrayDisplay() {
 function clearPool() {
     dicePool = {};
     updateTrayDisplay();
-    document.getElementById("modifier-input").value = 0;
+    let modInput = document.getElementById("modifier-input");
+    if(modInput) modInput.value = 0;
+    
     let advBtn = document.getElementById("btn-adv");
     let disBtn = document.getElementById("btn-dis");
     if (advBtn) advBtn.classList.remove('active');
@@ -141,21 +144,58 @@ function rollPool() {
     clearPool(); 
 }
 
+// 7. HISTORY, TIMESTAMPS & MODAL SAFETY
+function openClearModal() {
+    let modal = document.getElementById("clear-modal");
+    if(modal) modal.classList.remove("hidden-modal");
+}
+
+function closeClearModal() {
+    let modal = document.getElementById("clear-modal");
+    if(modal) modal.classList.add("hidden-modal");
+}
+
+function confirmClearHistory() {
+    rollsRef.remove(); 
+    closeClearModal(); 
+}
+
+rollsRef.on('value', (snapshot) => {
+    // If the 'rolls' folder vanishes, empty the screen!
+    if (!snapshot.exists()) {
+        let historyEl = document.getElementById("roll-history");
+        if(historyEl) historyEl.innerHTML = "";
+    }
+});
+
 rollsRef.on('child_added', (snapshot) => {
     const data = snapshot.val();
+    
+    // Format the timestamp
+    let timeString = "";
+    if (data.timestamp) {
+        let date = new Date(data.timestamp);
+        timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
     let newRollMessage = document.createElement("li");
     newRollMessage.innerHTML = `
-        <div class="player-name">${data.player}</div>
+        <div class="player-name">
+            ${data.player} 
+            <span style="color: #666; font-size: 10px; font-weight: normal; float: right;">${timeString}</span>
+        </div>
         <div class="roll-formula">${data.formula}</div>
         <div class="roll-output">
             <div class="roll-total">${data.total}</div>
             <div class="dice-grid">${data.diceHTML}</div>
         </div>
     `;
-    document.getElementById("roll-history").prepend(newRollMessage);
+    
+    let historyEl = document.getElementById("roll-history");
+    if(historyEl) historyEl.prepend(newRollMessage);
 });
 
-// 7. D&D BEYOND INTEGRATION (USING NETLIFY PROXY)
+// 8. D&D BEYOND INTEGRATION (USING NETLIFY PROXY)
 async function importDndBeyond() {
     let charInput = prompt("Enter your D&D Beyond Character ID (or paste the full URL):");
     if (!charInput || charInput.trim() === "") return;

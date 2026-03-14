@@ -57,3 +57,35 @@ body {
 .skill-btn { background: #2a2a35; color: #ddd; border: 1px solid #444; padding: 6px 8px; border-radius: 4px; cursor: pointer; text-align: left; display: flex; justify-content: space-between; font-size: 12px; }
 .skill-btn:hover { background-color: #444; border-color: #ffcc00; }
 .skill-val { color: #44ff44; font-weight: bold; }
+
+/* --- CUSTOM WARNING MODAL --- */
+.hidden-modal { 
+    display: none !important; 
+}
+
+#clear-modal {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.85); /* Darkens the rest of the screen */
+    z-index: 2000; /* Puts it above EVERYTHING else */
+    display: flex; justify-content: center; align-items: center;
+}
+
+.modal-content {
+    background: #1a1a24; 
+    border: 2px solid #c53131; /* Danger Red border! */
+    border-radius: 8px;
+    padding: 20px 30px; 
+    text-align: center; 
+    max-width: 300px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+}
+
+.modal-content h3 { color: #ffcc00; margin-top: 0; }
+.modal-content p { color: #ccc; font-size: 14px; line-height: 1.4; }
+
+.modal-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
+.modal-btn { padding: 10px 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+.cancel-btn { background: #333; color: #ccc; }
+.cancel-btn:hover { background: #555; }
+.confirm-btn { background: #c53131; color: white; }
+.confirm-btn:hover { background: #ff4444; }

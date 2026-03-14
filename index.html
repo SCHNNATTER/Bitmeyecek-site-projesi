@@ -13,7 +13,11 @@
         
         <div id="sidebar">
             <div class="sidebar-header">
-                <div>Roll History</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Roll History</span>
+                    <button onclick="openClearModal()" style="background: #2a2a35; border: 1px solid #444; color: #aaa; border-radius: 3px; cursor: pointer; font-size: 10px; padding: 3px 6px;">Clear</button>
+                </div>
+                
                 <div id="player-profile">
                     Playing as: <span id="display-name">Mysterious Stranger</span> 
                     <button id="change-name-btn" onclick="changeName()">Change</button>
@@ -77,7 +81,16 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
+<div id="clear-modal" class="hidden-modal">
+        <div class="modal-content">
+            <h3>⚠️ Clear History?</h3>
+            <p>Are you sure you want to delete all rolls? This will wipe the history for everyone at the table!</p>
+            <div class="modal-buttons">
+                <button class="modal-btn cancel-btn" onclick="closeClearModal()">Cancel</button>
+                <button class="modal-btn confirm-btn" onclick="confirmClearHistory()">Yes, Wipe It</button>
+            </div>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
