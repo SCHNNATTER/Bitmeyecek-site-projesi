@@ -161,7 +161,6 @@ function confirmClearHistory() {
 }
 
 rollsRef.on('value', (snapshot) => {
-    // If the 'rolls' folder vanishes, empty the screen!
     if (!snapshot.exists()) {
         let historyEl = document.getElementById("roll-history");
         if(historyEl) historyEl.innerHTML = "";
@@ -171,7 +170,6 @@ rollsRef.on('value', (snapshot) => {
 rollsRef.on('child_added', (snapshot) => {
     const data = snapshot.val();
     
-    // Format the timestamp
     let timeString = "";
     if (data.timestamp) {
         let date = new Date(data.timestamp);
@@ -197,17 +195,14 @@ rollsRef.on('child_added', (snapshot) => {
 
 // 8. D&D BEYOND INTEGRATION (USING NETLIFY PROXY)
 async function importDndBeyond(isManual = true) {
-    // 1. Check the browser's backpack for a saved ID
     let charId = localStorage.getItem("dndCharId");
 
-    // 2. If they clicked the button, or if there is no saved ID, ask them for one.
-    // Notice how we pre-fill the prompt box with their saved ID (if they have one) to make updating easy!
     if (isManual || !charId) {
         let charInput = prompt("Enter your D&D Beyond Character ID (or paste the full URL):", charId || "");
         if (!charInput || charInput.trim() === "") return;
 
         charId = charInput.split('/').pop().trim();
-        localStorage.setItem("dndCharId", charId); // Save the new ID to the backpack!
+        localStorage.setItem("dndCharId", charId); 
     }
 
     document.getElementById("display-name").innerText = "Importing...";
@@ -291,31 +286,29 @@ async function importDndBeyond(isManual = true) {
                            </button>`;
         });
         document.getElementById("sheet-skills").innerHTML = skillsHTML;
+
         // --- EXTRACTION ENGINE: WEAPONS & ACTIONS ---
         let actionsHTML = "<h4 style='color:#ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Weapons & Actions</h4>";
         let allActions = [];
         
-        // 1. Grab Equipped Weapons from Inventory
         if (charData.inventory) {
             charData.inventory.forEach(item => {
-                if (item.equipped && item.definition.filterType === "Weapon") {
+                if (item.equipped && item.definition?.filterType === "Weapon") {
                     allActions.push({ name: item.definition.name, type: "Weapon" });
                 }
             });
         }
         
-        // 2. Grab Class, Race, and Feat Actions
         if (charData.actions) {
             ['class', 'race', 'feat'].forEach(type => {
                 if (charData.actions[type]) {
                     charData.actions[type].forEach(act => {
-                        allActions.push({ name: act.name, type: "Action" });
+                        if (act.name) allActions.push({ name: act.name, type: "Action" });
                     });
                 }
             });
         }
 
-        // 3. Remove duplicates (D&D Beyond often lists things twice)
         let uniqueActions = Array.from(new Set(allActions.map(a => a.name)))
             .map(name => allActions.find(a => a.name === name));
 
@@ -334,19 +327,17 @@ async function importDndBeyond(isManual = true) {
             charData.classSpells.forEach(cs => {
                 if (cs.spells) {
                     cs.spells.forEach(spellObj => {
-                        // Only grab Cantrips (level 0), Always Prepared, or explicitly Prepared spells
-                        if (spellObj.definition.level === 0 || spellObj.alwaysPrepared || spellObj.prepared) {
-                            allSpells.push({ name: spellObj.definition.name, level: spellObj.definition.level });
+                        let def = spellObj.definition;
+                        if (def && (def.level === 0 || spellObj.alwaysPrepared || spellObj.prepared)) {
+                            allSpells.push({ name: def.name, level: def.level });
                         }
                     });
                 }
             });
         }
 
-        // 1. Sort spells by level (Cantrips first, then Level 1, 2, etc.)
         allSpells.sort((a, b) => a.level - b.level);
         
-        // 2. Remove duplicates (Multiclassing can cause overlap)
         let uniqueSpells = Array.from(new Set(allSpells.map(s => s.name)))
             .map(name => allSpells.find(s => s.name === name));
 
@@ -362,26 +353,26 @@ async function importDndBeyond(isManual = true) {
             });
         }
 
-        // Send everything to the sidebar!
-        document.getElementById("sheet-actions").innerHTML = actionsHTML + spellsHTML;
+        let sheetActions = document.getElementById("sheet-actions");
+        if (sheetActions) sheetActions.innerHTML = actionsHTML + spellsHTML;
+
+        // --- END OF EXTRACTION ENGINE ---
 
         currentPlayerName = charData.name;
         localStorage.setItem("tavernPlayerName", currentPlayerName);
         document.getElementById("display-name").innerText = currentPlayerName;
         document.getElementById("sheet-name").innerText = charData.name;
 
-        // If they clicked the button manually, let them know it worked!
         if (isManual) alert(`Successfully imported ${charData.name}!`);
 
     } catch (error) {
         console.error(error);
-        // We only show the scary error popup if they actually clicked the button manually.
         if (isManual) alert(`Import Failed! \n${error.message}`);
         document.getElementById("display-name").innerText = currentPlayerName; 
     }
 }
-// --- 9. AUTO-LOAD SAVED CHARACTER ---
-// If the browser remembers a character ID, secretly pull the stats in the background when the page opens!
+
+// 9. AUTO-LOAD SAVED CHARACTER
 if (localStorage.getItem("dndCharId")) {
-    importDndBeyond(false); // The 'false' tells the function to do it silently without prompting!
+    importDndBeyond(false); 
 }
