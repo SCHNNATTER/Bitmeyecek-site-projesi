@@ -130,10 +130,26 @@ boardRef.on('child_removed', (snapshot) => {
 
 // --- TOOLBAR & CAMERA (REST OF CODE) ---
 
+let currentMode = 'select'; // Make sure this is at the top of your file!
+
 function setMode(mode) {
-    canvas.isDrawingMode = (mode === 'draw');
-    document.getElementById('btn-draw').classList.toggle('active', mode === 'draw');
-    document.getElementById('btn-select').classList.toggle('active', mode === 'select');
+    currentMode = mode;
+    
+    // Remove 'active' class from all buttons
+    document.querySelectorAll('.wb-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Add 'active' class to the clicked button
+    let activeBtn = document.getElementById('btn-' + mode);
+    if(activeBtn) activeBtn.classList.add('active');
+
+    // Turn drawing mode on or off
+    if (mode === 'draw') {
+        canvas.isDrawingMode = true;
+        canvas.freeDrawingBrush.color = document.getElementById('draw-color').value;
+        canvas.freeDrawingBrush.width = 4; // Thickness of the brush
+    } else {
+        canvas.isDrawingMode = false;
+    }
 }
 
 function addImage(event) {
@@ -198,3 +214,52 @@ canvas.on('mouse:move', function(opt) {
     }
 });
 canvas.on('mouse:up', () => { isDragging = false; canvas.selection = true; });
+// --- CHANGE BRUSH & OBJECT COLOR ---
+function changeColor() {
+    let color = document.getElementById("draw-color").value;
+    
+    // Change brush color for future drawing
+    if (canvas.freeDrawingBrush) {
+        canvas.freeDrawingBrush.color = color;
+    }
+    
+    // BONUS: If you have text or a drawing selected, change its color instantly!
+    let activeObj = canvas.getActiveObject();
+    if (activeObj) {
+        if (activeObj.type === 'path') {
+            activeObj.set({ stroke: color });
+        } else {
+            activeObj.set({ fill: color });
+        }
+        canvas.renderAll();
+        // If you have a syncBoard() function to send to Firebase, call it here!
+    }
+}
+
+// --- ADD EDITABLE TEXT ON CLICK ---
+canvas.on('mouse:down', function(options) {
+    if (currentMode === 'text') {
+        const pointer = canvas.getPointer(options.e);
+        const color = document.getElementById('draw-color').value;
+        
+        // Create the text object
+        const text = new fabric.IText('Click to Edit', {
+            left: pointer.x,
+            top: pointer.y,
+            fontFamily: 'Georgia, serif', /* Matches the statblock font! */
+            fill: color,
+            fontSize: 28,
+            fontWeight: 'bold',
+            editable: true
+        });
+        
+        canvas.add(text);
+        canvas.setActiveObject(text);
+        text.enterEditing();
+        text.selectAll(); // Highlights the text so you can instantly type over it
+        canvas.renderAll();
+        
+        // Auto-switch back to 'Select' mode so we don't accidentally spawn 10 text boxes!
+        setMode('select'); 
+    }
+});

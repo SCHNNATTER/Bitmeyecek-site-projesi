@@ -1,0 +1,25 @@
+#dice-section { flex-shrink: 0; background: #1a1a24; padding: 10px; border-radius: 8px; border: 1px solid #333; }
+.dice-controls-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.pool-display { flex-grow: 1; text-align: right; padding-right: 10px; font-size: 16px; font-weight: bold; color: #ffcc00; white-space: nowrap; overflow-x: auto; min-width: 0; }
+.pool-display::-webkit-scrollbar { display: none; }
+.adv-dis-group { display: flex; gap: 5px; }
+#modifier-input { width: 50px; background: #111; color: white; border: 1px solid #444; padding: 4px; border-radius: 4px; text-align: center; font-size: 14px; }
+.dice-buttons-bottom { display: flex; justify-content: center; gap: 10px; }
+.roll-btn { background: #ffcc00; color: black; font-weight: bold; font-size: 14px; width: 100px; }
+.roll-btn:hover { background: #ffaa00; box-shadow: 0 0 10px #ffaa00; }
+.dice-btn { background: #2a2a35; color: #ddd; border: 1px solid #444; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.1s; }
+.dice-btn:hover { background: #4477ff; color: white; border-color: #6699ff; transform: translateY(-2px); }
+#btn-secret { background: #444; color: #ff4444; border: 1px solid #666; }
+#btn-secret.active { background: #882222; color: white; border-color: #ff4444; box-shadow: 0 0 10px #ff4444; }
+.tray-die { cursor: pointer; padding: 2px 6px; border-radius: 4px; border: 1px solid transparent; transition: 0.2s; display: inline-block; }
+.tray-die:hover { border-color: #ff4444; background: rgba(255, 68, 68, 0.15); color: #ff4444; text-decoration: line-through; }
+#roll-history { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+#roll-history li { padding: 12px 15px; border-bottom: 1px solid #2a2a35; background: #15151a; }
+#roll-history li:nth-child(even) { background: #1a1a21; }
+.player-name { font-weight: bold; color: #ffcc00; margin-bottom: 5px; font-size: 14px; }
+.roll-formula { color: #888; font-size: 12px; margin-bottom: 5px; }
+.roll-output { display: flex; align-items: center; gap: 10px; }
+.roll-total { font-size: 24px; font-weight: bold; color: white; min-width: 40px; }
+.dice-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+.mini-die { background: #4477ff; color: white; font-size: 11px; padding: 3px 6px; border-radius: 3px; border: 1px solid #6699ff; }
+.dropped-die { background: #444; color: #888; border-color: #333; text-decoration: line-through; }

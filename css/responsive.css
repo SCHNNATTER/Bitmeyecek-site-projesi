@@ -1,0 +1,17 @@
+@media (max-width: 1024px) {
+    .app-container { flex-direction: column; height: auto; overflow-y: auto; }
+    .main-column { width: 100%; height: 70vh; }
+    #sidebar { width: 100%; border-left: none; border-top: 2px solid #333; height: auto; max-height: none; }
+    #dice-section { padding: 10px; }
+    .dice-buttons-bottom { flex-wrap: wrap; justify-content: center; }
+    .modal-box { width: 95vw !important; margin: 10px; padding: 15px; }
+    #monster-vault > div:nth-child(2) { flex-direction: column !important; }
+    #monster-vault div[style*="width: 300px"] { width: 100% !important; border-right: none !important; border-bottom: 1px solid #333; height: 200px; }
+    .mon-input { font-size: 16px; }
+}
+@media (max-width: 480px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .dice-controls-top { flex-direction: column; align-items: stretch; }
+    .adv-dis-group { justify-content: center; margin-bottom: 10px; }
+    #whiteboard-toolbar { flex-wrap: wrap; gap: 5px; justify-content: center; }
+}

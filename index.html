@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D&D Virtual Tabletop</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/whiteboard.css">
+    <link rel="stylesheet" href="/css/dice.css">
+    <link rel="stylesheet" href="/css/character.css">
+    <link rel="stylesheet" href="/css/dm.css">
+    <link rel="stylesheet" href="/css/responsive.css">
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -32,6 +37,10 @@
                 <div id="whiteboard-toolbar">
                     <button class="wb-btn active" id="btn-select" onclick="setMode('select')">👆 Select</button>
                     <button class="wb-btn" id="btn-draw" onclick="setMode('draw')">✏️ Draw</button>
+                    
+                    <input type="color" id="draw-color" value="#ff4444" onchange="changeColor()" title="Change Color" style="height: 30px; width: 30px; padding: 0; border: 1px solid #444; border-radius: 4px; cursor: pointer; background: transparent;">
+                    <button class="wb-btn" id="btn-text" onclick="setMode('text')">🔤 Text</button>
+                    
                     <button class="wb-btn" onclick="document.getElementById('image-upload').click()">🖼️ Add Image</button>
                     <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="addImage(event)">
                     
