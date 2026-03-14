@@ -144,7 +144,7 @@ function rollPool() {
     clearPool(); 
 }
 
-// 7. HISTORY, TIMESTAMPS & MODAL SAFETY
+// 7. HISTORY & MODALS
 function openClearModal() {
     let modal = document.getElementById("clear-modal");
     if(modal) modal.classList.remove("hidden-modal");
@@ -188,27 +188,53 @@ rollsRef.on('child_added', (snapshot) => {
     if(historyEl) historyEl.prepend(newRollMessage);
 });
 
-// 8. D&D BEYOND INTEGRATION
+
+// --- NEW: CHECKBOX PERSISTENCE SYSTEM ---
+function saveCheckboxState(checkboxElement) {
+    // Grab our saved checkbox states (or create a new blank list if none exist)
+    let states = JSON.parse(localStorage.getItem("dndCheckboxStates") || "{}");
+    // Save whether this specific box is checked or not
+    states[checkboxElement.id] = checkboxElement.checked;
+    // Put it back in the backpack
+    localStorage.setItem("dndCheckboxStates", JSON.stringify(states));
+}
+
+
+// 8. D&D BEYOND INTEGRATION (WITH DATA CACHING)
 async function importDndBeyond(isManual = true) {
     let charId = localStorage.getItem("dndCharId");
 
+    // Ask for ID if they forced a sync OR if we don't have one
     if (isManual || !charId) {
-        let charInput = prompt("Enter your D&D Beyond Character ID (or paste the full URL):", charId || "");
+        let charInput = prompt("Enter your D&D Beyond Character ID to Sync:", charId || "");
         if (!charInput || charInput.trim() === "") return;
         charId = charInput.split('/').pop().trim();
         localStorage.setItem("dndCharId", charId); 
     }
 
-    document.getElementById("display-name").innerText = "Importing...";
+    if (isManual) document.getElementById("display-name").innerText = "Syncing with D&D Beyond...";
 
     try {
-        let proxyUrl = `/api/dnd/${charId}`; 
-        let response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Netlify proxy failed! Status: ${response.status}`);
-        
-        let rawData = await response.json();
-        if (rawData.success === false) throw new Error(rawData.message || "Sheet is Private.");
-        let charData = rawData.data;
+        let charData;
+
+        // THE CACHE SYSTEM: If auto-loading AND we have saved data, use the saved data!
+        if (!isManual && localStorage.getItem("dndCharData")) {
+            charData = JSON.parse(localStorage.getItem("dndCharData"));
+        } 
+        // Otherwise, run the Heist! (We do this if they click the button manually)
+        else {
+            let proxyUrl = `/api/dnd/${charId}`; 
+            let response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`Netlify proxy failed! Status: ${response.status}`);
+            
+            let rawData = await response.json();
+            if (rawData.success === false) throw new Error(rawData.message || "Sheet is Private.");
+            
+            charData = rawData.data;
+            
+            // Save this fresh data to the local backpack so we can use it later
+            localStorage.setItem("dndCharData", JSON.stringify(charData));
+        }
 
         let totalLevel = charData.classes ? charData.classes.reduce((sum, cls) => sum + cls.level, 0) : 1;
         let profBonus = Math.ceil(totalLevel / 4) + 1;
@@ -279,12 +305,10 @@ async function importDndBeyond(isManual = true) {
         });
         document.getElementById("sheet-skills").innerHTML = skillsHTML;
 
-        // --- EXTRACTION ENGINE: WEAPONS, MODIFIERS, & CHECKBOXES ---
+        // --- WEAPONS, MODIFIERS, & CHECKBOXES ---
         let actionsHTML = "<h4 style='color:#ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Weapons & Actions</h4>";
         let allActions = [];
-        
-        let strMod = statMods[0];
-        let dexMod = statMods[1];
+        let strMod = statMods[0]; let dexMod = statMods[1];
 
         if (charData.inventory) {
             charData.inventory.forEach(item => {
@@ -308,19 +332,12 @@ async function importDndBeyond(isManual = true) {
                 if (charData.actions[type]) {
                     charData.actions[type].forEach(act => {
                         if (act.name) {
-                            // THE FIX: Advanced Math for hidden charges!
                             let maxUses = act.limitedUse?.maxUses || 0;
-                            
-                            // 1. Does it scale with Proficiency Bonus? (Like Giant's Might!)
-                            if (act.limitedUse?.useProficiencyBonus) {
-                                maxUses = profBonus;
-                            } 
-                            // 2. Does it scale with a Stat? (Like a CON or CHA modifier)
+                            if (act.limitedUse?.useProficiencyBonus) maxUses = profBonus;
                             else if (act.limitedUse?.statModifierUsesId) {
                                 let statBonus = statMods[act.limitedUse.statModifierUsesId - 1] || 0;
-                                maxUses = Math.max(1, statBonus); // Usually minimum 1 use
+                                maxUses = Math.max(1, statBonus);
                             }
-                            
                             allActions.push({ name: act.name, type: "Action", dice: "", mod: 0, uses: maxUses });
                         }
                     });
@@ -328,8 +345,10 @@ async function importDndBeyond(isManual = true) {
             });
         }
 
-        let uniqueActions = Array.from(new Set(allActions.map(a => a.name)))
-            .map(name => allActions.find(a => a.name === name));
+        let uniqueActions = Array.from(new Set(allActions.map(a => a.name))).map(name => allActions.find(a => a.name === name));
+
+        // Load the saved checkbox states from the backpack
+        let savedCheckboxes = JSON.parse(localStorage.getItem("dndCheckboxStates") || "{}");
 
         uniqueActions.forEach(act => {
             let btnHTML = "";
@@ -342,8 +361,13 @@ async function importDndBeyond(isManual = true) {
             if (act.uses > 0) {
                 usesHTML = `<div style="margin-top: 6px;">`;
                 for(let i=0; i < act.uses; i++) {
-                    // THE FIX: We apply our new 'action-checkbox' CSS class here!
-                    usesHTML += `<input type="checkbox" class="action-checkbox">`;
+                    // Create a unique ID for this specific box (e.g. "chk-ActionSurge-0")
+                    let boxId = `chk-${act.name.replace(/[^a-zA-Z0-9]/g, '')}-${i}`;
+                    
+                    // Check our backpack. Was this box checked last time?
+                    let isChecked = savedCheckboxes[boxId] ? "checked" : "";
+                    
+                    usesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox" onchange="saveCheckboxState(this)" ${isChecked}>`;
                 }
                 usesHTML += `</div>`;
             }
@@ -358,7 +382,7 @@ async function importDndBeyond(isManual = true) {
                             </div>`;
         });
 
-        // --- EXTRACTION ENGINE: SPELLS ---
+        // --- SPELLS ---
         let spellsHTML = "<h4 style='color:#4477ff; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Prepared Spells</h4>";
         let allSpells = [];
 
@@ -376,9 +400,7 @@ async function importDndBeyond(isManual = true) {
         }
 
         allSpells.sort((a, b) => a.level - b.level);
-        
-        let uniqueSpells = Array.from(new Set(allSpells.map(s => s.name)))
-            .map(name => allSpells.find(s => s.name === name));
+        let uniqueSpells = Array.from(new Set(allSpells.map(s => s.name))).map(name => allSpells.find(s => s.name === name));
 
         if (uniqueSpells.length === 0) {
             spellsHTML += `<p style="font-size:12px; color:#666; font-style: italic;">No spells prepared (or martial class).</p>`;
@@ -397,45 +419,36 @@ async function importDndBeyond(isManual = true) {
         let sheetActions = document.getElementById("sheet-actions");
         if (sheetActions) sheetActions.innerHTML = actionsHTML + spellsHTML;
 
-        // --- END OF EXTRACTION ENGINE ---
-
         currentPlayerName = charData.name;
         localStorage.setItem("tavernPlayerName", currentPlayerName);
         document.getElementById("display-name").innerText = currentPlayerName;
         document.getElementById("sheet-name").innerText = charData.name;
 
-        if (isManual) alert(`Successfully imported ${charData.name}!`);
+        if (isManual) alert(`Successfully Synced ${charData.name}!`);
 
     } catch (error) {
         console.error(error);
-        if (isManual) alert(`Import Failed! \n${error.message}`);
+        if (isManual) alert(`Sync Failed! \n${error.message}`);
         document.getElementById("display-name").innerText = currentPlayerName; 
     }
 }
 
-// 9. AUTO-LOAD SAVED CHARACTER
-if (localStorage.getItem("dndCharId")) {
+// 9. AUTO-LOAD ON STARTUP
+if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) {
     importDndBeyond(false); 
 }
 
-// --- 10. ACTION TRAY LOADER (NOW ACCEPTS MODIFIERS!) ---
+// 10. ACTION TRAY LOADER
 function loadActionToTray(diceString, modifier = 0) {
-    clearPool(); // Empty the tray first
+    clearPool(); 
     if (!diceString) return;
     
-    // Split "1d6" into count (1) and sides (6)
     let parts = diceString.split('d');
     if (parts.length === 2) {
         let count = parseInt(parts[0]) || 1;
         let sides = parseInt(parts[1]);
-        
-        // Add the dice to the tray
-        for (let i = 0; i < count; i++) {
-            addToPool(sides);
-        }
+        for (let i = 0; i < count; i++) addToPool(sides);
     }
-    
-    // Auto-fill the modifier box!
     let modInput = document.getElementById("modifier-input");
     if(modInput) modInput.value = modifier;
 }
