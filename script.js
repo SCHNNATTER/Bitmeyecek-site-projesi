@@ -196,15 +196,23 @@ rollsRef.on('child_added', (snapshot) => {
 });
 
 // 8. D&D BEYOND INTEGRATION (USING NETLIFY PROXY)
-async function importDndBeyond() {
-    let charInput = prompt("Enter your D&D Beyond Character ID (or paste the full URL):");
-    if (!charInput || charInput.trim() === "") return;
+async function importDndBeyond(isManual = true) {
+    // 1. Check the browser's backpack for a saved ID
+    let charId = localStorage.getItem("dndCharId");
 
-    let charId = charInput.split('/').pop().trim();
+    // 2. If they clicked the button, or if there is no saved ID, ask them for one.
+    // Notice how we pre-fill the prompt box with their saved ID (if they have one) to make updating easy!
+    if (isManual || !charId) {
+        let charInput = prompt("Enter your D&D Beyond Character ID (or paste the full URL):", charId || "");
+        if (!charInput || charInput.trim() === "") return;
+
+        charId = charInput.split('/').pop().trim();
+        localStorage.setItem("dndCharId", charId); // Save the new ID to the backpack!
+    }
+
     document.getElementById("display-name").innerText = "Importing...";
 
     try {
-        // THIS ONLY WORKS WHEN HOSTED ON NETLIFY
         let proxyUrl = `/api/dnd/${charId}`; 
 
         let response = await fetch(proxyUrl);
@@ -289,9 +297,13 @@ async function importDndBeyond() {
         document.getElementById("display-name").innerText = currentPlayerName;
         document.getElementById("sheet-name").innerText = charData.name;
 
+        // If they clicked the button manually, let them know it worked!
+        if (isManual) alert(`Successfully imported ${charData.name}!`);
+
     } catch (error) {
         console.error(error);
-        alert(`Import Failed! \n${error.message}`);
+        // We only show the scary error popup if they actually clicked the button manually.
+        if (isManual) alert(`Import Failed! \n${error.message}`);
         document.getElementById("display-name").innerText = currentPlayerName; 
     }
 }
