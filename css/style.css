@@ -408,3 +408,83 @@ body {
 
 .stat-section p { margin: 5px 0; font-size: 14px; line-height: 1.4; }
 .stat-section strong { color: white; font-style: italic; }
+/* ========================================== */
+/* 📱 MOBILE & TABLET RESPONSIVENESS         */
+/* ========================================== */
+
+@media (max-width: 1024px) {
+    .app-container {
+        flex-direction: column; /* Stack sidebar below the map */
+        height: auto;
+        overflow-y: auto;
+    }
+
+    .main-column {
+        width: 100%;
+        height: 70vh; /* Give the map a fixed height on mobile */
+    }
+
+    #sidebar {
+        width: 100%;
+        border-left: none;
+        border-top: 2px solid #333;
+        height: auto;
+        max-height: none;
+    }
+
+    /* Make the Dice Section more compact */
+    #dice-section {
+        padding: 10px;
+    }
+
+    .dice-buttons-bottom {
+        flex-wrap: wrap; /* Let dice wrap to a second row */
+        justify-content: center;
+    }
+
+    /* Adjust Modals for smaller screens */
+    .modal-box {
+        width: 95vw !important;
+        margin: 10px;
+        padding: 15px;
+    }
+
+    /* Monster Vault Mobile Layout */
+    #monster-vault > div:nth-child(2) {
+        flex-direction: column !important; /* Stack monster list above statblock */
+    }
+
+    #monster-vault div[style*="width: 300px"] {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid #333;
+        height: 200px;
+    }
+
+    .mon-input {
+        font-size: 16px; /* Prevents iOS from zooming in on focus */
+    }
+}
+
+/* Extra Small Phones */
+@media (max-width: 480px) {
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr); /* 2 stats per row instead of 3 */
+    }
+
+    .dice-controls-top {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .adv-dis-group {
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    #whiteboard-toolbar {
+        flex-wrap: wrap;
+        gap: 5px;
+        justify-content: center;
+    }
+}
