@@ -376,3 +376,20 @@ async function importDndBeyond(isManual = true) {
 if (localStorage.getItem("dndCharId")) {
     importDndBeyond(false); 
 }
+// --- 10. ACTION TRAY LOADER ---
+function loadActionToTray(diceString) {
+    clearPool(); // Empty the tray first
+    if (!diceString) return;
+    
+    // Split "1d6" into count (1) and sides (6)
+    let parts = diceString.split('d');
+    if (parts.length === 2) {
+        let count = parseInt(parts[0]) || 1;
+        let sides = parseInt(parts[1]);
+        
+        // Add the dice to the tray!
+        for (let i = 0; i < count; i++) {
+            addToPool(sides);
+        }
+    }
+}
