@@ -193,7 +193,7 @@ rollsRef.on('child_added', (snapshot) => {
     if(historyEl) historyEl.prepend(newRollMessage);
 });
 
-// 8. D&D BEYOND INTEGRATION (USING NETLIFY PROXY)
+// 8. D&D BEYOND INTEGRATION
 async function importDndBeyond(isManual = true) {
     let charId = localStorage.getItem("dndCharId");
 
@@ -294,8 +294,8 @@ async function importDndBeyond(isManual = true) {
         if (charData.inventory) {
             charData.inventory.forEach(item => {
                 if (item.equipped && item.definition?.filterType === "Weapon") {
-                    // Look for the damage dice (e.g., "1d6")
-                    let dmgDice = item.definition.damage?.diceString || "";
+                    // THE FIX: Check for standard damage OR magic item base damage!
+                    let dmgDice = item.definition.damage?.diceString || item.definition.baseItem?.damage?.diceString || "";
                     allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice });
                 }
             });
@@ -315,12 +315,11 @@ async function importDndBeyond(isManual = true) {
             .map(name => allActions.find(a => a.name === name));
 
         uniqueActions.forEach(act => {
-            // If it has dice, make a red Roll button. If not, leave it blank.
+            // THE FIX: Stack the text and put the button on the right!
             let btnHTML = act.dice ? `<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}')">${act.dice}</button>` : ``;
-
             actionsHTML += `<div class="action-card">
                                 <div>
-                                    <strong style="display:block; margin-bottom:3px;">${act.name}</strong>
+                                    <strong style="display:block; margin-bottom:3px; font-size:13px;">${act.name}</strong>
                                     <span class="action-type">${act.type}</span>
                                 </div>
                                 ${btnHTML}
@@ -355,8 +354,10 @@ async function importDndBeyond(isManual = true) {
             uniqueSpells.forEach(spell => {
                 let lvlText = spell.level === 0 ? "Cantrip" : `Lvl ${spell.level}`;
                 spellsHTML += `<div class="action-card">
-                                    <strong>${spell.name}</strong>
-                                    <span class="spell-type">${lvlText}</span>
+                                    <div>
+                                        <strong style="display:block; margin-bottom:3px; font-size:13px;">${spell.name}</strong>
+                                        <span class="spell-type">${lvlText}</span>
+                                    </div>
                                 </div>`;
             });
         }
@@ -384,6 +385,7 @@ async function importDndBeyond(isManual = true) {
 if (localStorage.getItem("dndCharId")) {
     importDndBeyond(false); 
 }
+
 // --- 10. ACTION TRAY LOADER ---
 function loadActionToTray(diceString) {
     clearPool(); // Empty the tray first
