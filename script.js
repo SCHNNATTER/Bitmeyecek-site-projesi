@@ -290,15 +290,11 @@ async function importDndBeyond(isManual = true) {
             charData.inventory.forEach(item => {
                 if (item.equipped && item.definition?.filterType === "Weapon") {
                     let dmgDice = item.definition.damage?.diceString || item.definition.baseItem?.damage?.diceString || "";
-                    
-                    // The Mini Math Engine: Find the right stat to use!
                     let isFinesse = item.definition.properties?.some(p => p.name === "Finesse") || false;
-                    let isRanged = item.definition.attackType === 2; // 1 = Melee, 2 = Ranged
-                    
+                    let isRanged = item.definition.attackType === 2; 
                     let baseMod = isRanged ? dexMod : strMod;
-                    if (isFinesse) baseMod = Math.max(strMod, dexMod); // Finesse uses whichever is higher
-
-                    // Check for magic weapon bonuses (e.g. +1 Sword)
+                    if (isFinesse) baseMod = Math.max(strMod, dexMod); 
+                    
                     let magicBonus = item.definition.grantedModifiers?.find(m => m.type === "bonus" && m.subType === "magic")?.value || 0;
                     let totalDamageMod = baseMod + magicBonus;
 
@@ -312,8 +308,19 @@ async function importDndBeyond(isManual = true) {
                 if (charData.actions[type]) {
                     charData.actions[type].forEach(act => {
                         if (act.name) {
-                            // Extract limited uses for the checkboxes!
+                            // THE FIX: Advanced Math for hidden charges!
                             let maxUses = act.limitedUse?.maxUses || 0;
+                            
+                            // 1. Does it scale with Proficiency Bonus? (Like Giant's Might!)
+                            if (act.limitedUse?.useProficiencyBonus) {
+                                maxUses = profBonus;
+                            } 
+                            // 2. Does it scale with a Stat? (Like a CON or CHA modifier)
+                            else if (act.limitedUse?.statModifierUsesId) {
+                                let statBonus = statMods[act.limitedUse.statModifierUsesId - 1] || 0;
+                                maxUses = Math.max(1, statBonus); // Usually minimum 1 use
+                            }
+                            
                             allActions.push({ name: act.name, type: "Action", dice: "", mod: 0, uses: maxUses });
                         }
                     });
@@ -325,20 +332,18 @@ async function importDndBeyond(isManual = true) {
             .map(name => allActions.find(a => a.name === name));
 
         uniqueActions.forEach(act => {
-            // Build the Button (now includes the modifier!)
             let btnHTML = "";
             if (act.dice) {
                 let sign = act.mod >= 0 ? "+" : "";
-                // Notice how we are passing BOTH the dice AND the modifier to the loadActionToTray function now
                 btnHTML = `<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}', ${act.mod})">${act.dice} ${sign}${act.mod}</button>`;
             }
 
-            // Build the Checkboxes
             let usesHTML = "";
             if (act.uses > 0) {
                 usesHTML = `<div style="margin-top: 6px;">`;
                 for(let i=0; i < act.uses; i++) {
-                    usesHTML += `<input type="checkbox" style="margin-right: 4px; cursor: pointer; transform: scale(1.2);">`;
+                    // THE FIX: We apply our new 'action-checkbox' CSS class here!
+                    usesHTML += `<input type="checkbox" class="action-checkbox">`;
                 }
                 usesHTML += `</div>`;
             }
