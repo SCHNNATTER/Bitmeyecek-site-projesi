@@ -294,7 +294,9 @@ async function importDndBeyond(isManual = true) {
         if (charData.inventory) {
             charData.inventory.forEach(item => {
                 if (item.equipped && item.definition?.filterType === "Weapon") {
-                    allActions.push({ name: item.definition.name, type: "Weapon" });
+                    // Look for the damage dice (e.g., "1d6")
+                    let dmgDice = item.definition.damage?.diceString || "";
+                    allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice });
                 }
             });
         }
@@ -303,7 +305,7 @@ async function importDndBeyond(isManual = true) {
             ['class', 'race', 'feat'].forEach(type => {
                 if (charData.actions[type]) {
                     charData.actions[type].forEach(act => {
-                        if (act.name) allActions.push({ name: act.name, type: "Action" });
+                        if (act.name) allActions.push({ name: act.name, type: "Action", dice: "" });
                     });
                 }
             });
@@ -313,9 +315,15 @@ async function importDndBeyond(isManual = true) {
             .map(name => allActions.find(a => a.name === name));
 
         uniqueActions.forEach(act => {
+            // If it has dice, make a red Roll button. If not, leave it blank.
+            let btnHTML = act.dice ? `<button class="roll-action-btn" onclick="loadActionToTray('${act.dice}')">${act.dice}</button>` : ``;
+
             actionsHTML += `<div class="action-card">
-                                <strong>${act.name}</strong>
-                                <span class="action-type">${act.type}</span>
+                                <div>
+                                    <strong style="display:block; margin-bottom:3px;">${act.name}</strong>
+                                    <span class="action-type">${act.type}</span>
+                                </div>
+                                ${btnHTML}
                             </div>`;
         });
 
