@@ -1,0 +1,46 @@
+<div class="modal-box" style="width: 800px; max-height: 95vh; overflow-y: auto; text-align: left;">
+            <h2 style="color: white; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px;">Build a Monster</h2>
+            
+            <form id="monster-form" style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="mon-name" placeholder="Monster Name" class="mon-input" style="flex: 2;">
+                    <input type="text" id="mon-ac" placeholder="AC" class="mon-input" style="flex: 1;">
+                    <input type="text" id="mon-hp" placeholder="HP (e.g. 22)" class="mon-input" style="flex: 1;">
+                    <input type="text" id="mon-speed" placeholder="Speed" class="mon-input" style="flex: 1;">
+                </div>
+
+                <div style="display: flex; gap: 5px; justify-content: space-between; margin-top: 10px;">
+                    <input type="number" id="mon-str" placeholder="STR" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-dex" placeholder="DEX" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-con" placeholder="CON" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-int" placeholder="INT" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-wis" placeholder="WIS" class="mon-input" style="width: 15%;">
+                    <input type="number" id="mon-cha" placeholder="CHA" class="mon-input" style="width: 15%;">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="mon-saves" placeholder="Saving Throws (e.g. STR +17, CON +14)" class="mon-input">
+                    <input type="text" id="mon-skills" placeholder="Skills (e.g. Perception +14)" class="mon-input">
+                    <input type="text" id="mon-vulnerabilities" placeholder="Damage Vulnerabilities" class="mon-input">
+                    <input type="text" id="mon-resistances" placeholder="Damage Resistances" class="mon-input">
+                    <input type="text" id="mon-immunities" placeholder="Damage Immunities" class="mon-input">
+                    <input type="text" id="mon-cond-immunities" placeholder="Condition Immunities" class="mon-input">
+                    <input type="text" id="mon-senses" placeholder="Senses (e.g. Truesight 120 ft.)" class="mon-input">
+                    <input type="text" id="mon-languages" placeholder="Languages" class="mon-input">
+                </div>
+                <input type="text" id="mon-challenge" placeholder="Challenge (e.g. 23 (50,000 XP))" class="mon-input">
+
+                <h4 style="color: #ffcc00; margin-bottom: 0; margin-top: 15px;">Traits (Passives)</h4>
+                <div id="traits-container"></div>
+                <button type="button" class="ui-btn" style="background: #333; font-size: 11px;" onclick="addDynamicRow('traits-container')">+ Add Trait</button>
+
+                <h4 style="color: #ff4444; margin-bottom: 0; margin-top: 15px;">Actions</h4>
+                <div id="actions-container"></div>
+                <button type="button" class="ui-btn" style="background: #333; font-size: 11px;" onclick="addDynamicRow('actions-container')">+ Add Action</button>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="ui-btn" style="flex: 1; background: #4477ff; font-weight: bold;" onclick="saveMonster()">Save Monster</button>
+                    <button type="button" class="ui-btn" style="flex: 1; background: #444;" onclick="closeMonsterCreator()">Cancel</button>
+                </div>
+            </form>
+        </div>
