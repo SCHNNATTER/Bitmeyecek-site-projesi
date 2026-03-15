@@ -13,3 +13,10 @@ body { background-color: #0f0f13; color: #e0e0e0; font-family: 'Segoe UI', Tahom
 .hidden-modal { display: none !important; }
 .role-btn { padding: 20px; font-size: 18px; width: 200px; margin: 10px; cursor: pointer; border-radius: 8px; border: 2px solid #444; background: #222; color: white; transition: 0.2s; }
 .role-btn:hover { background: #333; border-color: #ffcc00; }
+::-webkit-scrollbar {width: 8px; height: 8px;}
+
+::-webkit-scrollbar-track { background: #0f0f13;}
+
+::-webkit-scrollbar-thumb {background: #333; border-radius: 4px;}
+
+::-webkit-scrollbar-thumb:hover {background: #555;}

@@ -17,21 +17,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
 </head>
 <body>
-
     <div id="role-modal" class="modal-overlay hidden-modal" data-include="components/role-modal.html"></div>
     <div id="init-modal" class="hidden-modal modal-overlay" data-include="components/init-modal.html"></div>
     <div id="clear-modal" class="hidden-modal modal-overlay" data-include="components/clear-modal.html"></div>
     <div id="monster-creator-modal" class="hidden-modal modal-overlay" style="z-index: 3000;" data-include="components/monster-creator.html"></div>
+    <div id="import-monster-modal" class="hidden-modal modal-overlay" style="z-index: 3100;" data-include="components/import-monster.html"></div>
 
     <div class="app-container">
         <div class="main-column">
             
             <div id="whiteboard-wrapper">
+                
+                <div id="toolbar-tab" onclick="toggleToolbar()">🛠️ Hide Tools ▲</div>
+                
                 <div id="whiteboard-toolbar">
                     <button class="wb-btn active" id="btn-select" onclick="setMode('select')">👆 Select</button>
                     <button class="wb-btn" id="btn-draw" onclick="setMode('draw')">✏️ Draw</button>
+                     <button class="wb-btn" id="btn-fog" onclick="setMode('fog')" style="min-width: 80px; background: #2a2a35;">🌫️ Fog</button>
                     
-                    <input type="color" id="draw-color" value="#ff4444" onchange="changeColor()" title="Change Color" style="height: 30px; width: 30px; padding: 0; border: 1px solid #444; border-radius: 4px; cursor: pointer; background: transparent;">
+                    <div class="color-picker-group">
+                        <div class="color-swatch active" style="background: #ff4444;" onclick="setColor(this, '#ff4444')" title="Blood Red"></div>
+                        <div class="color-swatch" style="background: #4477ff;" onclick="setColor(this, '#4477ff')" title="Magic Blue"></div>
+                        <div class="color-swatch" style="background: #44ff44;" onclick="setColor(this, '#44ff44')" title="Acid Green"></div>
+                        <div class="color-swatch" style="background: #ffcc00;" onclick="setColor(this, '#ffcc00')" title="Gold"></div>
+                        <div class="color-swatch" style="background: #ffffff;" onclick="setColor(this, '#ffffff')" title="White"></div>
+                    </div>
+                    
                     <button class="wb-btn" id="btn-text" onclick="setMode('text')">🔤 Text</button>
                     
                     <button class="wb-btn" onclick="document.getElementById('image-upload').click()">🖼️ Add Image</button>
@@ -50,29 +61,34 @@
                 </div>
             </div>
 
-            <div id="dice-section">
-                <div class="dice-controls-top">
-                    <div id="current-pool" class="pool-display">Select dice to roll...</div>
-                    <div class="adv-dis-group">
-                        <button id="btn-adv" class="ui-btn" onclick="toggleAdvDis('adv')">ADV</button>
-                        <button id="btn-dis" class="ui-btn" onclick="toggleAdvDis('dis')">DIS</button>
+            <div id="dice-wrapper" style="display: flex; flex-direction: column; flex-shrink: 0;">
+                
+                <div id="dice-tab" onclick="toggleDice()">🎲 Hide Dice ▼</div>
+                
+                <div id="dice-section">
+                    <div class="dice-controls-top">
+                        <div id="current-pool" class="pool-display">Select dice to roll...</div>
+                        <div class="adv-dis-group">
+                            <button id="btn-adv" class="ui-btn" onclick="toggleAdvDis('adv')">ADV</button>
+                            <button id="btn-dis" class="ui-btn" onclick="toggleAdvDis('dis')">DIS</button>
+                        </div>
+                        <button id="btn-secret" class="ui-btn" onclick="toggleSecret()" title="Roll only to DM">👁️ SECRET</button>
+                        <span style="color: white; font-weight: bold; font-size: 20px;">+</span>
+                        <input type="number" id="modifier-input" value="0">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <button class="ui-btn roll-btn" onclick="rollPool()">ROLL</button>
+                            <button class="ui-btn" onclick="clearPool()" style="padding: 4px; font-size: 11px; background: #444; border-color: #555;">Clear Tray</button>
+                        </div>
                     </div>
-                    <button id="btn-secret" class="ui-btn" onclick="toggleSecret()" title="Roll only to DM">👁️ SECRET</button>
-                    <span style="color: white; font-weight: bold; font-size: 20px;">+</span>
-                    <input type="number" id="modifier-input" value="0">
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <button class="ui-btn roll-btn" onclick="rollPool()">ROLL</button>
-                        <button class="ui-btn" onclick="clearPool()" style="padding: 4px; font-size: 11px; background: #444; border-color: #555;">Clear Tray</button>
+                    <div class="dice-buttons-bottom">
+                        <button class="dice-btn" onclick="addToPool(4)">d4</button>
+                        <button class="dice-btn" onclick="addToPool(6)">d6</button>
+                        <button class="dice-btn" onclick="addToPool(8)">d8</button>
+                        <button class="dice-btn" onclick="addToPool(10)">d10</button>
+                        <button class="dice-btn" onclick="addToPool(12)">d12</button>
+                        <button class="dice-btn" onclick="addToPool(20)">d20</button>
+                        <button class="dice-btn" onclick="addToPool(100)">d100</button>
                     </div>
-                </div>
-                <div class="dice-buttons-bottom">
-                    <button class="dice-btn" onclick="addToPool(4)">d4</button>
-                    <button class="dice-btn" onclick="addToPool(6)">d6</button>
-                    <button class="dice-btn" onclick="addToPool(8)">d8</button>
-                    <button class="dice-btn" onclick="addToPool(10)">d10</button>
-                    <button class="dice-btn" onclick="addToPool(12)">d12</button>
-                    <button class="dice-btn" onclick="addToPool(20)">d20</button>
-                    <button class="dice-btn" onclick="addToPool(100)">d100</button>
                 </div>
             </div>
         </div>
@@ -81,17 +97,26 @@
             <div class="sidebar-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3 style="margin: 0; color: white;">Roll History</h3>
-                    <button class="ui-btn" style="padding: 2px 6px; font-size: 10px;" onclick="openClearModal()">Clear</button>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="ui-btn" style="padding: 2px 8px; font-size: 11px; background: #444;" onclick="document.getElementById('settings-menu').classList.toggle('hidden-modal')">⚙️ Options</button>
+                        <button class="ui-btn" style="padding: 2px 8px; font-size: 11px;" onclick="openClearModal()">🗑️ Clear</button>
+                    </div>
                 </div>
-                <div style="font-size: 12px; color: #aaa; margin-bottom: 10px; text-align: right;">
-                    Playing as: <strong id="display-name" style="color: #ffcc00;">Mysterious Stranger</strong> 
-                    <a href="#" style="color: #4477ff; margin-left: 5px;" onclick="changeName()">Change</a>
+
+                <div id="settings-menu" class="hidden-modal" style="background: #15151a; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                    <div style="font-size: 12px; color: #aaa; margin-bottom: 10px; text-align: center;">
+                        Playing as: <strong id="display-name" style="color: #ffcc00;">Mysterious Stranger</strong> 
+                        <a href="#" style="color: #4477ff; margin-left: 5px;" onclick="changeName()">Change</a>
+                    </div>
+                    <button class="import-btn" style="padding: 6px; font-size: 12px; margin-bottom: 10px;" onclick="importDndBeyond(true)">Import from D&D Beyond</button>
+                    <div style="font-size: 11px; color: #666; text-align: center;">
+                        Not a DM? <a href="#" style="color: #4477ff;" onclick="localStorage.removeItem('tavernUserRole'); location.reload();">Reset Role</a>
+                    </div>
                 </div>
-                <button class="import-btn" onclick="importDndBeyond(true)">Import from D&D Beyond</button>
-                <button class="ui-btn" style="width: 100%; margin-top: 5px; background: #222;" onclick="toggleCharSheet()">Toggle Character Sheet</button>
-                <button id="btn-dm-screen" class="ui-btn" style="width: 100%; margin-top: 10px; display: none;" onclick="toggleDmScreen()">👑 Open DM Screen</button>
-                <div style="font-size: 11px; color: #666; margin-top: 10px; text-align: center;">
-                    Not a DM? <a href="#" style="color: #4477ff;" onclick="localStorage.removeItem('tavernUserRole'); location.reload();">Reset Role</a>
+
+                <div style="display: flex; gap: 5px;">
+                    <button class="ui-btn" style="flex: 1; background: #222;" onclick="toggleCharSheet()">🛡️ Sheet</button>
+                    <button id="btn-dm-screen" class="ui-btn" style="flex: 1; background: #ffcc00; color: #000; font-weight: bold; display: none;" onclick="toggleDmScreen()">👑 DM Screen</button>
                 </div>
             </div>
 
@@ -112,16 +137,25 @@
 
     <div id="char-sidebar">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px;">
-            <h2 id="sheet-name" style="color: white; margin: 0;">Character Name</h2>
-            <button class="ui-btn" style="background: #c53131; padding: 5px 10px; font-size: 12px;" onclick="toggleCharSheet()">❌ Close</button>
+            <select id="sheet-selector" onchange="switchSidebarSheet()" style="background: #111; color: #ffcc00; border: 1px solid #444; padding: 6px; border-radius: 4px; font-weight: bold; width: 70%; cursor: pointer;">
+                <option value="pc">🛡️ PC Sheet</option>
+            </select>
+            <button class="ui-btn" style="background: #c53131; padding: 5px 10px; font-size: 12px;" onclick="toggleCharSheet()">❌</button>
         </div>
-        <h4 style="color: #ffcc00; margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 3px;">Attributes</h4>
-        <div id="sheet-stats" class="stat-grid"></div>
-        <h4 style="color: #ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;">Saving Throws</h4>
-        <div id="sheet-saves" class="skill-list"></div>
-        <h4 style="color: #ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;">Skills</h4>
-        <div id="sheet-skills" class="skill-list"></div>
-        <div id="sheet-actions"></div>
+
+        <div id="pc-sheet-content">
+            <h2 id="sheet-name" style="color: white; margin: 0 0 10px 0;">Character Name</h2>
+            <h4 style="color: #ffcc00; margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 3px;">Attributes</h4>
+            <div id="sheet-stats" class="stat-grid"></div>
+            <h4 style="color: #ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;">Saving Throws</h4>
+            <div id="sheet-saves" class="skill-list"></div>
+            <h4 style="color: #ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;">Skills</h4>
+            <div id="sheet-skills" class="skill-list"></div>
+            <div id="sheet-actions"></div>
+        </div>
+
+        <div id="monster-sheet-content" style="display: none;">
+            </div>
     </div>
 
     <div id="dm-screen" class="hidden-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f0f13; z-index: 2000; display: flex; flex-direction: column;">
@@ -129,10 +163,16 @@
             <h2 style="color: #ffcc00; margin: 0;">👑 Behind the DM Screen</h2>
             <button class="ui-btn" style="background: #c53131; font-weight: bold; padding: 8px 20px;" onclick="toggleDmScreen()">❌ Close Screen</button>
         </div>
+        
         <div id="dm-content" class="dm-grid">
             <div class="dm-card" style="cursor: pointer;" onclick="toggleMonsterVault()">
                 <h3 class="dm-card-title">🐉 Monster Vault</h3>
                 <p style="color: #888; font-size: 13px;">Create, manage, and view custom monster statblocks.</p>
+            </div>
+            
+            <div class="dm-card" style="cursor: pointer;" onclick="toggleTokenVault()">
+                <h3 class="dm-card-title" style="color: #4477ff;">🧝 Token Vault</h3>
+                <p style="color: #888; font-size: 13px;">Upload and quickly drop player and monster tokens onto the map.</p>
             </div>
         </div>
     </div>
@@ -140,9 +180,15 @@
     <div id="monster-vault" class="hidden-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f0f13; z-index: 2500; display: flex; flex-direction: column;">
         <div style="background: #1a1a24; padding: 15px 30px; border-bottom: 2px solid #882222; display: flex; justify-content: space-between; align-items: center;">
             <h2 style="color: #ff4444; margin: 0;">🐉 Monster Vault</h2>
-            <button class="ui-btn" style="background: #444;" onclick="toggleMonsterVault()">❌ Close Vault</button>
+            
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-pin-monster" class="ui-btn" style="background: #444;" onclick="pinCurrentMonster()">📌 Pin Monster</button>
+                <button class="ui-btn" style="background: #4477ff; font-weight: bold;" onclick="openMonsterImport()">🤖 AI Import</button>
+                <button class="ui-btn" style="background: #444;" onclick="toggleMonsterVault()">❌ Close Vault</button>
+            </div>
         </div>
         <div style="display: flex; flex-grow: 1; overflow: hidden;">
+            
             <div style="width: 300px; background: #15151a; border-right: 1px solid #333; display: flex; flex-direction: column;">
                 <div style="padding: 10px;">
                     <button class="ui-btn" style="width: 100%; background: #4477ff;" onclick="openMonsterCreator()">+ Create Monster</button>
@@ -154,6 +200,24 @@
             </div>
         </div>
     </div>
+    <div id="token-vault" class="hidden-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f0f13; z-index: 2500; display: flex; flex-direction: column;">
+        <div style="background: #1a1a24; padding: 15px 30px; border-bottom: 2px solid #4477ff; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: #4477ff; margin: 0;">🧝 Token Vault</h2>
+            
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-drop-queue" class="ui-btn" style="background: #44ff44; color: black; font-weight: bold; display: none;" onclick="dropQueuedTokens()">⬇️ Drop (0) Tokens</button>
+                
+                <button class="ui-btn" style="background: #4477ff; font-weight: bold;" onclick="document.getElementById('token-upload').click()">➕ Upload Token</button>
+                <input type="file" id="token-upload" accept="image/*" style="display: none;" onchange="handleTokenUpload(event)">
+                <button class="ui-btn" style="background: #444;" onclick="toggleTokenVault()">❌ Close Vault</button>
+            </div>
+        </div>
+        <div style="padding: 30px; overflow-y: auto; flex-grow: 1;">
+            <p style="color: #888; margin-top: 0;">Click a token to instantly drop it onto the center of your screen.</p>
+            <div id="token-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px;">
+            </div>
+        </div>
+    </div>
 
     <script src="js/core.js"></script>
     <script src="js/firebase-setup.js"></script>
@@ -162,6 +226,8 @@
     <script src="js/character.js"></script>
     <script src="js/initiative.js"></script>
     <script src="js/monsters.js"></script>
+    <script src="js/statblock-roller.js"></script>
     <script src="js/whiteboard.js"></script>
+    <script src="js/tokens.js"></script>
 </body>
 </html>

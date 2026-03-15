@@ -169,3 +169,259 @@ function viewMonster(id) {
         </div>
     `;
 }
+// ==========================================
+// 🤖 AI JSON IMPORTER
+// ==========================================
+
+function openMonsterImport() {
+    document.getElementById("import-monster-modal").classList.remove("hidden-modal");
+    // Clear the box for a fresh paste
+    const textBox = document.getElementById("import-json-data");
+    if(textBox) textBox.value = "";
+}
+
+function closeMonsterImport() {
+    document.getElementById("import-monster-modal").classList.add("hidden-modal");
+}
+
+function processMonsterImport() {
+    let rawText = document.getElementById("import-json-data").value;
+    
+    // Auto-clean markdown formatting that AIs like to add (```json ... ```)
+    rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+
+    try {
+        // Parse the text into a JavaScript Object
+        let importedMonster = JSON.parse(rawText);
+        
+        // Basic validation: make sure it at least has a name
+        if (!importedMonster.name) {
+            alert("Error: The JSON is missing a 'name' field!");
+            return;
+        }
+
+        // Push to Firebase!
+        monstersRef.push(importedMonster);
+        
+        // Close modal and show success
+        closeMonsterImport();
+        alert(`Successfully imported: ${importedMonster.name}!`);
+        
+    } catch (error) {
+        console.error("JSON Parsing Error:", error);
+        alert("Invalid JSON format. Please make sure the AI generated valid code.");
+    }
+}
+// ==========================================
+// 📌 SIDEBAR MULTI-SHEET LOGIC
+// ==========================================
+
+let pinnedMonsters = {}; // This dictionary remembers your open monster sheets
+
+function switchSidebarSheet() {
+    const selector = document.getElementById("sheet-selector");
+    const pcContent = document.getElementById("pc-sheet-content");
+    const monsterContent = document.getElementById("monster-sheet-content");
+
+    if (selector.value === "pc") {
+        pcContent.style.display = "block";
+        monsterContent.style.display = "none";
+    } else {
+        pcContent.style.display = "none";
+        monsterContent.style.display = "block";
+        monsterContent.innerHTML = pinnedMonsters[selector.value];
+    }
+}
+
+// Toggles the Pin state of the currently viewed monster
+function pinCurrentMonster() {
+    const displayArea = document.getElementById("monster-display");
+    const nameEl = displayArea.querySelector('.stat-name');
+    
+    if (!nameEl) {
+        alert("Please select a monster from the list first!");
+        return;
+    }
+    
+    const monsterName = nameEl.innerText;
+    const pinBtn = document.getElementById("btn-pin-monster");
+    const selector = document.getElementById("sheet-selector");
+    
+    // IF ALREADY PINNED -> UNPIN IT
+    if (pinnedMonsters[monsterName]) {
+        delete pinnedMonsters[monsterName]; // Remove from memory
+        
+        // Remove it from the dropdown menu
+        for(let i = 0; i < selector.options.length; i++) {
+            if(selector.options[i].value === monsterName) {
+                selector.remove(i);
+                break;
+            }
+        }
+        
+        // If the sidebar was actively showing this removed monster, switch back to PC
+        if (selector.value === monsterName || selector.value === "") {
+            selector.value = "pc";
+            switchSidebarSheet();
+        }
+        
+        // Update Button to "Inactive" state
+        pinBtn.style.background = "#444";
+        pinBtn.style.color = "white";
+        pinBtn.innerText = "📌 Pin Monster";
+        
+    } 
+    // IF NOT PINNED -> PIN IT
+    else {
+        const statblockHTML = displayArea.innerHTML;
+        pinnedMonsters[monsterName] = statblockHTML; // Save to memory
+
+        // Add to dropdown
+        const opt = document.createElement("option");
+        opt.value = monsterName;
+        opt.text = "🐉 " + monsterName;
+        selector.add(opt);
+
+        // Update Button to "Active" state
+        pinBtn.style.background = "#ffcc00";
+        pinBtn.style.color = "#000";
+        pinBtn.innerText = "📌 Pinned!";
+        
+        // Update the sidebar in the background
+        selector.value = monsterName;
+        switchSidebarSheet();
+    }
+}
+
+// ==========================================
+// 👁️ SMART DISPLAY OBSERVER
+// ==========================================
+const displayObserver = new MutationObserver(() => {
+    // 1. Pause the observer temporarily so we don't trap the app in an infinite loop
+    displayObserver.disconnect();
+
+    const displayArea = document.getElementById("monster-display");
+
+    // 2. RUN THE AUTO-PARSER (Makes text clickable)
+    if (displayArea) {
+        makeRollable(displayArea);
+    }
+
+    // 3. UPDATE THE PIN BUTTON
+    const nameEl = document.querySelector('#monster-display .stat-name');
+    const pinBtn = document.getElementById("btn-pin-monster");
+    
+    if (nameEl && pinBtn) {
+        const monsterName = nameEl.innerText;
+        if (pinnedMonsters[monsterName]) {
+            pinBtn.style.background = "#ffcc00";
+            pinBtn.style.color = "#000";
+            pinBtn.innerText = "📌 Pinned!";
+        } else {
+            pinBtn.style.background = "#444";
+            pinBtn.style.color = "white";
+            pinBtn.innerText = "📌 Pin Monster";
+        }
+    }
+
+    // 4. Resume watching for the next monster
+    if (displayArea) {
+        displayObserver.observe(displayArea, { childList: true, subtree: true });
+    }
+});
+
+// Start watching the display area as soon as the page loads
+window.addEventListener('DOMContentLoaded', () => {
+    const displayArea = document.getElementById("monster-display");
+    if (displayArea) {
+        displayObserver.observe(displayArea, { childList: true, subtree: true });
+    }
+});
+// ==========================================
+// 🎲 DYNAMIC STATBLOCK ROLLER
+// ==========================================
+
+function makeRollable(element) {
+    // Crawl through every piece of raw text in the statblock
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+    const nodesToReplace = [];
+    let node;
+    
+    while (node = walker.nextNode()) {
+        // Skip text that is already inside a button or rollable span
+        if (node.parentNode.tagName === 'BUTTON' || node.parentNode.classList.contains('rollable')) continue;
+
+        const text = node.nodeValue;
+        // Check if the text contains a dice format (1d6 + 2) or a modifier (+5)
+        const hasDice = /(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi.test(text);
+        const hasMod = /(^|\s|\()([+-]\d+)(?=\s|\)|$|,)/g.test(text);
+
+        if (hasDice || hasMod) {
+            nodesToReplace.push(node);
+        }
+    }
+
+    // Convert the plain text into clickable HTML spans
+    nodesToReplace.forEach(n => {
+        let html = n.nodeValue
+            // 1. Replace Dice (e.g. 1d6 + 2)
+            .replace(/(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi, `<span class="rollable" onclick="quickMonsterRoll('$1', event)">$1</span>`)
+            // 2. Replace standalone Modifiers (e.g. +5)
+            .replace(/(^|\s|\()([+-]\d+)(?=\s|\)|$|,)/g, `$1<span class="rollable" onclick="quickMonsterRoll('$2', event)">$2</span>`);
+
+        const span = document.createElement('span');
+        span.innerHTML = html;
+        n.parentNode.replaceChild(span, n);
+    });
+}
+
+function quickMonsterRoll(formula, event) {
+    event.stopPropagation(); // Stops the click from triggering things behind it
+    let cleanFormula = formula.replace(/\s+/g, '');
+
+    // If it's just a modifier like "+5", automatically attach a d20 to it
+    if (cleanFormula.startsWith('+') || cleanFormula.startsWith('-')) {
+        cleanFormula = '1d20' + cleanFormula;
+    }
+
+    // Parse the formula into math
+    let match = cleanFormula.match(/(\d+)d(\d+)([+-]\d+)?/);
+    if (!match) return;
+
+    let numDice = parseInt(match[1]);
+    let sides = parseInt(match[2]);
+    let mod = match[3] ? parseInt(match[3]) : 0;
+
+    let total = 0;
+    let rolls = [];
+    for (let i = 0; i < numDice; i++) {
+        let r = Math.floor(Math.random() * sides) + 1;
+        rolls.push(r);
+        total += r;
+    }
+    total += mod;
+
+    // Figure out which monster we are rolling for
+    let monsterName = "Monster";
+    let statblock = event.target.closest('.statblock');
+    if (statblock) {
+        let nameEl = statblock.querySelector('.stat-name');
+        if (nameEl) monsterName = nameEl.innerText;
+    }
+
+    // Send it directly to the Roll History
+    const historyList = document.getElementById('roll-history');
+    const li = document.createElement('li');
+    li.innerHTML = `
+        <div class="player-name">${monsterName}</div>
+        <div class="roll-formula">Rolled ${cleanFormula}</div>
+        <div class="roll-output">
+            <span class="roll-total">${total}</span>
+            <div class="dice-grid">
+                ${rolls.map(r => `<span class="mini-die">${r}</span>`).join('')}
+                ${mod !== 0 ? `<span style="color:#aaa; font-size:12px; padding-top:4px;">${mod > 0 ? '+' : ''}${mod}</span>` : ''}
+            </div>
+        </div>
+    `;
+    historyList.prepend(li);
+}

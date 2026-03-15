@@ -13,3 +13,18 @@
 .stat-scores strong { color: white; }
 .stat-section p { margin: 5px 0; font-size: 14px; line-height: 1.4; }
 .stat-section strong { color: white; font-style: italic; }
+/* --- INTERACTIVE STATBLOCK ROLLS --- */
+.rollable {
+    color: #ffcc00;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 2px;
+    border-radius: 3px;
+    transition: 0.2s;
+    border-bottom: 1px dashed #ffcc00;
+}
+
+.rollable:hover {
+    background: rgba(255, 204, 0, 0.2);
+    color: white;
+}

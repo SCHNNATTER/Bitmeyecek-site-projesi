@@ -1,3 +1,19 @@
+// --- TOGGLE DICE TRAY ---
+function toggleDice() {
+    const diceSec = document.getElementById('dice-section');
+    const tab = document.getElementById('dice-tab');
+    
+    // Toggle the crushed CSS class
+    diceSec.classList.toggle('collapsed');
+    
+    // Change the text based on if it's open or closed
+    if(diceSec.classList.contains('collapsed')) {
+        tab.innerHTML = "🎲 Show Dice ▲";
+    } else {
+        tab.innerHTML = "🎲 Hide Dice ▼";
+    }
+}
+
 // ==========================================
 // DICE POOL & HISTORY ENGINE
 // ==========================================

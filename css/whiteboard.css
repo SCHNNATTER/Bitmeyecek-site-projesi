@@ -1,7 +1,80 @@
 #whiteboard-wrapper { flex-grow: 1; display: flex; flex-direction: column; background: #18181b; border: 1px solid #333; border-radius: 8px; overflow: hidden; min-height: 0; }
-#whiteboard-toolbar { background: #1a1a24; padding: 8px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #333; }
+/* --- THE NEW SLIDE TAB --- */
+#toolbar-tab {
+    background: #111;
+    color: #888;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    padding: 3px 0;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    transition: 0.2s;
+    user-select: none;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#toolbar-tab:hover {
+    background: #1a1a24;
+    color: #ffcc00;
+}
+
+/* --- THE TOOLBAR (WITH ANIMATION) --- */
+#whiteboard-toolbar {
+    background: #1a1a24;
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    flex-wrap: wrap; 
+    
+    /* Animation magic */
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, opacity 0.3s ease;
+    max-height: 100px; 
+    opacity: 1;
+    overflow: hidden;
+}
+
+/* When the JavaScript adds this class, it crushes the toolbar to 0 height */
+#whiteboard-toolbar.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+    opacity: 0;
+}
 .wb-btn { background: #333; color: white; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: 0.2s; }
 .wb-btn:hover { background: #444; }
 .wb-btn.active { background: #4477ff; border-color: #6699ff; }
 .wb-hint { color: #888; font-size: 12px; margin-left: auto; font-style: italic; }
 #canvas-container { flex-grow: 1; position: relative; width: 100%; height: 100%; }
+/* --- CUSTOM COLOR PALETTE --- */
+.color-picker-group {
+    display: flex;
+    gap: 6px;
+    background: #111;
+    padding: 5px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    align-items: center;
+}
+
+.color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.1s, border-color 0.1s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.15);
+}
+
+.color-swatch.active {
+    border-color: white;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+}

@@ -1,5 +1,77 @@
-#dice-section { flex-shrink: 0; background: #1a1a24; padding: 10px; border-radius: 8px; border: 1px solid #333; }
-.dice-controls-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+#dice-sec/* --- THE DICE SLIDE TAB --- */
+#dice-tab {
+    background: #111;
+    color: #888;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    padding: 4px 15px;
+    cursor: pointer;
+    border: 1px solid #333;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    align-self: center; /* Centers the tab above the tray */
+    transition: 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: -1px; /* Makes it seamlessly connect to the box */
+    z-index: 2;
+}
+
+#dice-tab:hover {
+    background: #1a1a24;
+    color: #ffcc00;
+}
+
+/* --- THE DICE TRAY (WITH ANIMATION) --- */
+#dice-section {
+    flex-shrink: 0; 
+    background: #1a1a24; 
+    padding: 10px; 
+    border-radius: 8px; 
+    border: 1px solid #333;
+    
+    /* Animation Magic */
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, opacity 0.3s ease, border 0.3s ease;
+    max-height: 150px; 
+    opacity: 1;
+    overflow: hidden;
+}
+
+/* Crushes the tray to 0 height when toggled */
+/* --- THE DICE TRAY (WITH ANIMATION) --- */
+#dice-section {
+    flex-shrink: 0; 
+    background: #1a1a24; 
+    padding: 10px; 
+    border-radius: 8px; 
+    border: 1px solid #333;
+    
+    /* Animation Magic */
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, opacity 0.3s ease, border 0.3s ease;
+    max-height: 250px; /* ⬆️ Increased so the dice aren't cut off! */
+    opacity: 1;
+    overflow: hidden;
+}
+
+/* Crushes the tray to 0 height when toggled */
+#dice-section.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-color: transparent;
+    opacity: 0;
+}
+
+/* --- TRAY LAYOUT FIX --- */
+.dice-controls-top { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; /* Pushes the text left and buttons right */
+    gap: 10px; 
+    margin-bottom: 12px; 
+    flex-wrap: nowrap; /* 🛑 Forces them to stay on one line! */
+}
 .pool-display { flex-grow: 1; text-align: right; padding-right: 10px; font-size: 16px; font-weight: bold; color: #ffcc00; white-space: nowrap; overflow-x: auto; min-width: 0; }
 .pool-display::-webkit-scrollbar { display: none; }
 .adv-dis-group { display: flex; gap: 5px; }
