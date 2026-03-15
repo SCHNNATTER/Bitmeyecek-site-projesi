@@ -1,5 +1,5 @@
 // ==========================================
-// 🎲 DYNAMIC STATBLOCK ROLLER (js/statblock-roller.js)
+// 🎲 DYNAMIC STATBLOCK ROLLER
 // ==========================================
 
 function makeRollable(element) {
@@ -9,13 +9,15 @@ function makeRollable(element) {
     let node;
     
     while (node = walker.nextNode()) {
-        // Skip text that is already inside a button or rollable span
-        if (node.parentNode.tagName === 'BUTTON' || node.parentNode.classList.contains('rollable')) continue;
+        // Skip text that is already inside a button, link, or rollable span
+        const parentTag = node.parentNode.tagName;
+        if (parentTag === 'BUTTON' || parentTag === 'A' || node.parentNode.classList.contains('rollable')) continue;
 
         const text = node.nodeValue;
-        // Check if the text contains a dice format (1d6 + 2) or a modifier (+5)
+        
+        // ENHANCED REGEX: Now catches dice and modifiers even if they are touching periods, semicolons, or colons!
         const hasDice = /(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi.test(text);
-        const hasMod = /(^|\s|\()([+-]\d+)(?=\s|\)|$|,)/g.test(text);
+        const hasMod = /(^|\s|\()([+-]\d+)(?=\s|\)|$|,|\.|;|:)/g.test(text);
 
         if (hasDice || hasMod) {
             nodesToReplace.push(node);
@@ -26,9 +28,9 @@ function makeRollable(element) {
     nodesToReplace.forEach(n => {
         let html = n.nodeValue
             // 1. Replace Dice (e.g. 1d6 + 2)
-            .replace(/(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi, `<span class="rollable" onclick="quickMonsterRoll('$1', event)">$1</span>`)
+            .replace(/(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi, `<span class="rollable" style="color: #4477ff; cursor: pointer; font-weight: bold;" onclick="quickMonsterRoll('$1', event)" title="Roll $1">$1</span>`)
             // 2. Replace standalone Modifiers (e.g. +5)
-            .replace(/(^|\s|\()([+-]\d+)(?=\s|\)|$|,)/g, `$1<span class="rollable" onclick="quickMonsterRoll('$2', event)">$2</span>`);
+            .replace(/(^|\s|\()([+-]\d+)(?=\s|\)|$|,|\.|;|:)/g, `$1<span class="rollable" style="color: #4477ff; cursor: pointer; font-weight: bold;" onclick="quickMonsterRoll('$2', event)" title="Roll 1d20$2">$2</span>`);
 
         const span = document.createElement('span');
         span.innerHTML = html;
@@ -54,9 +56,8 @@ function quickMonsterRoll(formula, event) {
     let mod = match[3] ? parseInt(match[3]) : 0;
 
     // 1. ADD TO DICE TRAY POOL
-    for (let i = 0; i < numDice; i++) {
-        // This calls the exact same function your d4, d6, d20 buttons use!
-        if (typeof addToPool === "function") {
+    if (typeof addToPool === "function") {
+        for (let i = 0; i < numDice; i++) {
             addToPool(sides);
         }
     }
@@ -71,20 +72,25 @@ function quickMonsterRoll(formula, event) {
     // 3. AUTO-CHANGE DM NAME TO MONSTER NAME
     let monsterName = "Monster";
     let statblock = event.target.closest('.statblock');
+    
     if (statblock) {
-        let nameEl = statblock.querySelector('.stat-name');
-        if (nameEl) monsterName = nameEl.innerText;
+        // Looks for a specific class, or defaults to the biggest header it can find
+        let nameEl = statblock.querySelector('.stat-name') || statblock.querySelector('h1, h2, h3');
+        if (nameEl) monsterName = nameEl.innerText.trim();
     }
     
     const nameDisplay = document.getElementById('display-name');
     if (nameDisplay) {
-        // Temporarily sets your roller name to "Bandit" or "Kraken"
         nameDisplay.innerText = monsterName; 
+        
+        // NOTE: If your dice.js pulls the roller's name directly from localStorage, 
+        // you will need to uncomment this next line so Firebase knows the monster is rolling!
+        // localStorage.setItem('tavernCharacterName', monsterName);
     }
 
     // 4. OPEN TRAY IF IT WAS HIDDEN
     const diceSec = document.getElementById('dice-section');
     if (diceSec && diceSec.classList.contains('collapsed')) {
-        toggleDice(); // Pops the drawer open so you can see the dice you just added!
+        if (typeof toggleDice === "function") toggleDice(); 
     }
 }

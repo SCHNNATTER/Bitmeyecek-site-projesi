@@ -1,23 +1,31 @@
 // ==========================================
-// D&D BEYOND CHARACTER SHEET
+// 🐉 D&D BEYOND CHARACTER ENGINE
 // ==========================================
+
+const charRef = database.ref('characters');
+const myCharId = localStorage.getItem('tavernCharacterId') || 'char_' + Date.now();
+localStorage.setItem('tavernCharacterId', myCharId);
+
+// --- 1. CHECKBOX STATE PERSISTENCE ---
 function saveCheckboxState(checkboxElement) {
     let states = JSON.parse(localStorage.getItem("dndCheckboxStates") || "{}");
     states[checkboxElement.id] = checkboxElement.checked;
     localStorage.setItem("dndCheckboxStates", JSON.stringify(states));
 }
 
+// --- 2. THE D&D BEYOND IMPORT ENGINE ---
 async function importDndBeyond(isManual = true) {
     let charId = localStorage.getItem("dndCharId");
 
     if (isManual || !charId) {
-        let charInput = prompt("Enter your D&D Beyond Character ID to Sync:", charId || "");
+        let charInput = prompt("Enter your D&D Beyond Character ID or URL:", charId || "");
         if (!charInput || charInput.trim() === "") return;
         charId = charInput.split('/').pop().trim();
         localStorage.setItem("dndCharId", charId); 
     }
 
-    if (isManual) document.getElementById("display-name").innerText = "Syncing with D&D Beyond...";
+    const nameDisplay = document.getElementById("display-name");
+    if (isManual && nameDisplay) nameDisplay.innerText = "Syncing with D&D Beyond...";
 
     try {
         let charData;
@@ -26,13 +34,14 @@ async function importDndBeyond(isManual = true) {
         } else {
             let proxyUrl = `http://localhost:3000/api/dnd/${charId}`; 
             let response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error(`Node Proxy failed!`);
+            if (!response.ok) throw new Error(`Proxy connection failed.`);
             let rawData = await response.json();
             if (rawData.success === false) throw new Error(rawData.message || "Sheet is Private.");
             charData = rawData.data;
             localStorage.setItem("dndCharData", JSON.stringify(charData));
         }
 
+        // --- STAT CALCULATIONS ---
         let totalLevel = charData.classes ? charData.classes.reduce((sum, cls) => sum + cls.level, 0) : 1;
         let profBonus = Math.ceil(totalLevel / 4) + 1;
 
@@ -64,8 +73,9 @@ async function importDndBeyond(isManual = true) {
             let sign = modifier >= 0 ? "+" : "";
             statsHTML += `<button class="stat-btn" onclick="loadSkillToTray(${modifier})">${statNames[i]}<br><span style="color:#ffcc00; font-size:16px;">${sign}${modifier}</span></button>`;
         }
-        document.getElementById("sheet-stats").innerHTML = statsHTML;
+        if(document.getElementById("sheet-stats")) document.getElementById("sheet-stats").innerHTML = statsHTML;
 
+        // --- SAVES & SKILLS ---
         let savesHTML = "";
         let saveSubTypes = ["strength-saving-throws", "dexterity-saving-throws", "constitution-saving-throws", "intelligence-saving-throws", "wisdom-saving-throws", "charisma-saving-throws"];
         for (let i = 0; i < 6; i++) {
@@ -73,7 +83,7 @@ async function importDndBeyond(isManual = true) {
             let sign = totalSaveMod >= 0 ? "+" : "";
             savesHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSaveMod})"><span>${statNames[i]}</span> <span class="skill-val">${sign}${totalSaveMod}</span></button>`;
         }
-        document.getElementById("sheet-saves").innerHTML = savesHTML;
+        if(document.getElementById("sheet-saves")) document.getElementById("sheet-saves").innerHTML = savesHTML;
 
         const skillList = [
             { name: "Acrobatics", statIdx: 1, subType: "acrobatics" }, { name: "Animal Handling", statIdx: 4, subType: "animal-handling" },
@@ -93,8 +103,9 @@ async function importDndBeyond(isManual = true) {
             let sign = totalSkillMod >= 0 ? "+" : "";
             skillsHTML += `<button class="skill-btn" onclick="loadSkillToTray(${totalSkillMod})"><span>${skill.name}</span> <span class="skill-val">${sign}${totalSkillMod}</span></button>`;
         });
-        document.getElementById("sheet-skills").innerHTML = skillsHTML;
+        if(document.getElementById("sheet-skills")) document.getElementById("sheet-skills").innerHTML = skillsHTML;
 
+        // --- ACTIONS & WEAPONS ---
         let actionsHTML = "<h4 style='color:#ffcc00; margin-bottom: 5px; margin-top: 15px; border-bottom: 1px solid #444; padding-bottom: 3px;'>Weapons & Actions</h4>";
         let allActions = [];
         let strMod = statMods[0]; let dexMod = statMods[1];
@@ -108,7 +119,6 @@ async function importDndBeyond(isManual = true) {
                     let baseMod = isRanged ? dexMod : strMod;
                     if (isFinesse) baseMod = Math.max(strMod, dexMod); 
                     let magicBonus = item.definition.grantedModifiers?.find(m => m.type === "bonus" && m.subType === "magic")?.value || 0;
-                    
                     allActions.push({ name: item.definition.name, type: "Weapon", dice: dmgDice, mod: (baseMod + magicBonus), attackMod: (baseMod + profBonus + magicBonus), uses: 0 });
                 }
             });
@@ -129,8 +139,8 @@ async function importDndBeyond(isManual = true) {
             });
         }
 
-        let uniqueActions = Array.from(new Set(allActions.map(a => a.name))).map(name => allActions.find(a => a.name === name));
         let savedCheckboxes = JSON.parse(localStorage.getItem("dndCheckboxStates") || "{}");
+        let uniqueActions = Array.from(new Set(allActions.map(a => a.name))).map(name => allActions.find(a => a.name === name));
 
         uniqueActions.forEach(act => {
             let btnHTML = ""; let buttons = [];
@@ -143,14 +153,14 @@ async function importDndBeyond(isManual = true) {
                 usesHTML = `<div style="margin-top: 6px;">`;
                 for(let i=0; i < act.uses; i++) {
                     let boxId = `chk-${act.name.replace(/[^a-zA-Z0-9]/g, '')}-${i}`;
-                    let isChecked = savedCheckboxes[boxId] ? "checked" : "";
-                    usesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox" onchange="saveCheckboxState(this)" ${isChecked}>`;
+                    usesHTML += `<input type="checkbox" id="${boxId}" class="action-checkbox" onchange="saveCheckboxState(this)" ${savedCheckboxes[boxId] ? "checked" : ""}>`;
                 }
                 usesHTML += `</div>`;
             }
             actionsHTML += `<div class="action-card"><div><strong style="display:block; margin-bottom:3px; font-size:13px;">${act.name}</strong><span class="action-type">${act.type}</span>${usesHTML}</div>${btnHTML}</div>`;
         });
 
+        // --- SPELLS & SLOTS ---
         let spellsHTML = "";
         let spellsByLevel = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[], 9:[]};
 
@@ -177,12 +187,11 @@ async function importDndBeyond(isManual = true) {
         if (charData.classes) {
             charData.classes.forEach(cls => {
                 let name = cls.definition.name.toLowerCase();
-                let lvl = cls.level;
-                if (["wizard", "cleric", "druid", "sorcerer", "bard"].includes(name)) casterLevel += lvl;
-                else if (["paladin", "ranger"].includes(name)) casterLevel += Math.floor(lvl / 2);
-                else if (name === "artificer") casterLevel += Math.ceil(lvl / 2);
-                else if (cls.subclassDefinition && ["eldritch knight", "arcane trickster"].includes(cls.subclassDefinition.name.toLowerCase())) casterLevel += Math.floor(lvl / 3);
-                else if (name === "warlock") warlockLevel += lvl;
+                if (["wizard", "cleric", "druid", "sorcerer", "bard"].includes(name)) casterLevel += cls.level;
+                else if (["paladin", "ranger"].includes(name)) casterLevel += Math.floor(cls.level / 2);
+                else if (name === "artificer") casterLevel += Math.ceil(cls.level / 2);
+                else if (cls.subclassDefinition && ["eldritch knight", "arcane trickster"].includes(cls.subclassDefinition.name.toLowerCase())) casterLevel += Math.floor(cls.level / 3);
+                else if (name === "warlock") warlockLevel += cls.level;
             });
         }
 
@@ -219,7 +228,6 @@ async function importDndBeyond(isManual = true) {
                     }
                     personalUsesHTML += `</div>`;
                 }
-                
                 if (spell.dice) btnHTML = `<button class="roll-action-btn" style="background:#4477ff;" onclick="castSpell(${spell.level}, '${spell.dice}')">Roll ${spell.dice}</button>`;
                 else if (spell.level > 0) btnHTML = `<button class="roll-action-btn" style="background:#555; border: 1px solid #777;" onclick="castSpell(${spell.level}, null)">Use Slot</button>`;
 
@@ -228,10 +236,16 @@ async function importDndBeyond(isManual = true) {
         }
 
         document.getElementById("sheet-actions").innerHTML = actionsHTML + spellsHTML;
-        currentPlayerName = charData.name;
-        localStorage.setItem("tavernPlayerName", currentPlayerName);
+        localStorage.setItem("tavernCharacterName", charData.name);
         document.getElementById("sheet-name").innerText = charData.name;
-        applyRoleStyling(userRole);
+        if(nameDisplay) nameDisplay.innerText = charData.name;
+
+        charRef.child(myCharId).update({
+            name: charData.name,
+            hp: { current: charData.curHp || 10, max: charData.maxHp || 10 },
+            ac: charData.ac || 10,
+            stats: statMods
+        });
 
         if (isManual) alert(`Successfully Synced ${charData.name}!`);
     } catch (error) {
@@ -240,18 +254,21 @@ async function importDndBeyond(isManual = true) {
     }
 }
 
-if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) importDndBeyond(false); 
-
+// --- 3. TRAY BRIDGES ---
 function loadSkillToTray(modifier = 0) {
-    clearPool(); addToPool(20); 
-    document.getElementById("modifier-input").value = modifier;
+    if (typeof clearPool === 'function') clearPool(); 
+    if (typeof addToPool === 'function') addToPool(20); 
+    const modInput = document.getElementById("modifier-input");
+    if (modInput) modInput.value = modifier;
 }
 
 function loadActionToTray(diceString, modifier = 0) {
-    if (!diceString) return;
+    if (!diceString || typeof addToPool !== 'function') return;
     let parts = diceString.split('d');
     if (parts.length === 2) {
-        for (let i = 0; i < (parseInt(parts[0]) || 1); i++) addToPool(parseInt(parts[1]));
+        let count = parseInt(parts[0]) || 1;
+        let sides = parseInt(parts[1]);
+        for (let i = 0; i < count; i++) addToPool(sides);
     }
     let modInput = document.getElementById("modifier-input");
     if(modInput) modInput.value = (parseInt(modInput.value) || 0) + modifier; 
@@ -261,14 +278,18 @@ function castSpell(level, diceString) {
     if (diceString && diceString !== "null") loadActionToTray(diceString, 0); 
     if (level > 0) {
         let slots = document.querySelectorAll(`.lvl-${level}-slot`);
-        if (slots.length > 0) {
-            let usedSlot = false;
-            for (let i = 0; i < slots.length; i++) {
-                if (!slots[i].checked) {
-                    slots[i].checked = true; saveCheckboxState(slots[i]); usedSlot = true; break; 
-                }
+        for (let i = 0; i < slots.length; i++) {
+            if (!slots[i].checked) {
+                slots[i].checked = true; saveCheckboxState(slots[i]); return; 
             }
-            if (!usedSlot) alert(`Warning: You are completely out of Level ${level} spell slots!`);
         }
+        alert(`Warning: You are out of Level ${level} spell slots!`);
     }
 }
+
+// --- 4. THE LIFECYCLE ---
+document.addEventListener('componentsLoaded', () => {
+    if (localStorage.getItem("dndCharId") || localStorage.getItem("dndCharData")) {
+        importDndBeyond(false); 
+    }
+});

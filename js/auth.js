@@ -1,18 +1,21 @@
 // ==========================================
-// IDENTITY & ROLES
+// 🔑 IDENTITY & ROLES
 // ==========================================
+
+// Initial defaults
 let currentPlayerName = "Mysterious Stranger";
 let userRole = "player"; 
-let isSecretRoll = false;
 
 function initializeIdentity() {
-    let savedName = localStorage.getItem("tavernPlayerName");
-    if (savedName) currentPlayerName = savedName;
-    else {
+    // UNIFIED: Using 'tavernCharacterName' to match character.js and dice.js
+    let savedName = localStorage.getItem("tavernCharacterName");
+    if (savedName) {
+        currentPlayerName = savedName;
+    } else {
         let newName = prompt("Welcome! What is your character's name?");
         if (newName && newName.trim() !== "") {
             currentPlayerName = newName.trim();
-            localStorage.setItem("tavernPlayerName", currentPlayerName);
+            localStorage.setItem("tavernCharacterName", currentPlayerName);
         }
     }
 
@@ -21,66 +24,88 @@ function initializeIdentity() {
         userRole = savedRole;
         applyRoleStyling(userRole);
     } else {
-        document.getElementById("role-modal").classList.remove("hidden-modal");
+        const roleModal = document.getElementById("role-modal");
+        if (roleModal) roleModal.classList.remove("hidden-modal");
     }
     
-    document.getElementById("display-name").innerText = currentPlayerName;
-    if (savedRole) applyRoleStyling(savedRole);
+    updateDisplayNameUI();
 }
 
 function selectRole(role) {
     userRole = role;
     localStorage.setItem("tavernUserRole", role); 
-    document.getElementById("role-modal").classList.add("hidden-modal");
+    const roleModal = document.getElementById("role-modal");
+    if (roleModal) roleModal.classList.add("hidden-modal");
     applyRoleStyling(role);
+    
+    // Refresh the page or trigger a re-render of the whiteboard 
+    // so the DM sees the fog transparency immediately!
+    if (typeof updateInteractions === 'function') updateInteractions();
+    location.reload(); 
 }
 
 function applyRoleStyling(role) {
-    const roleText = (role === 'dm') ? "👑 DM" : "🛡️ Player";
-    const nameEl = document.getElementById("display-name");
-    if (nameEl && !nameEl.innerText.includes("DM") && !nameEl.innerText.includes("Player")) {
-        nameEl.innerText = `${currentPlayerName} (${roleText})`;
-    }
+    updateDisplayNameUI();
     const dmBtn = document.getElementById("btn-dm-screen");
     if (dmBtn) dmBtn.style.display = (role === 'dm') ? "block" : "none";
+}
+
+function updateDisplayNameUI() {
+    const nameEl = document.getElementById("display-name");
+    if (!nameEl) return;
+
+    const roleTag = (userRole === 'dm') ? "👑 DM" : "🛡️ Player";
+    // Clean update: prevents the name from stacking like "Name (DM) (DM)"
+    nameEl.innerText = `${currentPlayerName} (${roleTag})`;
 }
 
 function changeName() {
     let newName = prompt("What is your character's name?");
     if (newName && newName.trim() !== "") {
         currentPlayerName = newName.trim();
-        localStorage.setItem("tavernPlayerName", currentPlayerName);
-        document.getElementById("display-name").innerText = currentPlayerName;
-        applyRoleStyling(userRole);
+        localStorage.setItem("tavernCharacterName", currentPlayerName);
+        updateDisplayNameUI();
     }
 }
 
-initializeIdentity();
+// --- UI TOGGLES ---
 
-// UI Toggles
 function toggleAdvDis(type) {
-    let advBtn = document.getElementById("btn-adv");
-    let disBtn = document.getElementById("btn-dis");
+    const advBtn = document.getElementById("btn-adv");
+    const disBtn = document.getElementById("btn-dis");
+    if (!advBtn || !disBtn) return;
+
     if (type === 'adv') {
-        if (advBtn.classList.contains('active')) advBtn.classList.remove('active');
-        else { advBtn.classList.add('active'); disBtn.classList.remove('active'); }
+        const isActive = advBtn.classList.contains('active');
+        advBtn.classList.toggle('active', !isActive);
+        disBtn.classList.remove('active');
     } else {
-        if (disBtn.classList.contains('active')) disBtn.classList.remove('active');
-        else { disBtn.classList.add('active'); advBtn.classList.remove('active'); }
+        const isActive = disBtn.classList.contains('active');
+        disBtn.classList.toggle('active', !isActive);
+        advBtn.classList.remove('active');
     }
 }
 
+// Use the new name we established in dice.js to avoid the crash!
 function toggleSecret() {
-    isSecretRoll = !isSecretRoll;
-    document.getElementById("btn-secret").classList.toggle("active", isSecretRoll);
+    if (typeof isSecretState !== 'undefined') {
+        isSecretState = !isSecretState;
+        const secretBtn = document.getElementById("btn-secret");
+        if (secretBtn) secretBtn.classList.toggle("active", isSecretState);
+    }
 }
 
 function toggleCharSheet() {
-    let sheet = document.getElementById("char-sidebar");
+    const sheet = document.getElementById("char-sidebar");
     if(sheet) sheet.classList.toggle("open");
 }
 
 function toggleDmScreen() {
-    let screen = document.getElementById("dm-screen");
+    const screen = document.getElementById("dm-screen");
     if(screen) screen.classList.toggle("hidden-modal");
 }
+
+// --- THE STARTING PISTOL ---
+document.addEventListener('componentsLoaded', () => {
+    initializeIdentity();
+});

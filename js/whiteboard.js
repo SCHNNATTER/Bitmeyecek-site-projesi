@@ -1,7 +1,12 @@
 // ==========================================
 // 🎨 MASTER WHITEBOARD CONFIG
 // ==========================================
-const isUserDM = localStorage.getItem('tavernUserRole') === 'DM';
+function isUserDM() {
+    // A bulletproof check that handles weird localStorage formatting
+    const roleStr = String(localStorage.getItem('tavernUserRole') || localStorage.getItem('role') || localStorage.getItem('userRole')).toUpperCase();
+    return roleStr.includes('DM');
+}
+
 const fogColor = '#0f0f13'; 
 const boardRef = database.ref('whiteboard_objects');
 
@@ -19,6 +24,11 @@ let isDragging = false;
 let lastPosX, lastPosY;
 let lastClickTime = 0;
 
+// Variables for Fog Shapes
+let isDrawingFog = false;
+let origX, origY, fogShape;
+let isErasingFog = false;
+
 // ==========================================
 // 🛠️ UI & CANVAS RESIZING
 // ==========================================
@@ -33,50 +43,89 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 setTimeout(resizeCanvas, 100);
 
+// ==========================================
+// 🛠️ WHITEBOARD TOOLBAR TOGGLE
+// ==========================================
 function toggleToolbar() {
     const toolbar = document.getElementById('whiteboard-toolbar');
     const tab = document.getElementById('toolbar-tab');
+    
+    if (!toolbar || !tab) return;
+
+    // Toggle the animation class
     toolbar.classList.toggle('collapsed');
-    tab.innerHTML = toolbar.classList.contains('collapsed') ? "🛠️ Show Tools ▼" : "🛠️ Hide Tools ▲";
+
+    // Update the text based on whether the class is there
+    if (toolbar.classList.contains('collapsed')) {
+        tab.innerHTML = '🛠️ Show Tools ▼';
+    } else {
+        tab.innerHTML = '🛠️ Hide Tools ▲';
+    }
 }
 
 // ==========================================
-// 🔄 FIREBASE SYNC ENGINE
+// 🔻 DROPDOWN MENU CONTROLLERS
 // ==========================================
+function toggleDropdown(menuId) {
+    const menu = document.getElementById(menuId);
+    if (!menu) return; 
+    const isShowing = menu.style.display === 'flex';
+    hideDropdowns(); 
+    if (!isShowing) menu.style.display = 'flex';
+}
+
+function hideDropdowns() {
+    const drawMenu = document.getElementById('draw-menu');
+    const fogMenu = document.getElementById('fog-menu');
+    if (drawMenu) drawMenu.style.display = 'none';
+    if (fogMenu) fogMenu.style.display = 'none';
+}
+
+// ==========================================
+// 🔄 FIREBASE SYNC ENGINE (FORCE INJECTED)
+// ==========================================
+// This guarantees Fabric never strips our custom tags before sending to Firebase!
+function getFirebasePayload(obj) {
+    const payload = obj.toJSON(['id', 'isFog', 'lockMovementX', 'lockMovementY', 'lockScalingX', 'lockScalingY', 'lockRotation', 'hasControls', 'borderColor', 'selectable', 'evented']);
+    payload.id = obj.id; 
+    payload.isFog = obj.isFog === true; 
+    return payload;
+}
+
 canvas.on('object:added', (options) => {
     if (isUpdatingFromServer) return;
     const obj = options.target;
     if (!obj.id) obj.id = 'obj_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-    boardRef.child(obj.id).set(obj.toJSON(['id', 'isFog', 'lockMovementX', 'lockMovementY', 'lockScalingX', 'lockScalingY', 'lockRotation', 'hasControls', 'borderColor', 'selectable', 'evented']));
-});
-
-canvas.on('object:modified', (options) => {
-    saveObjectChange(options.target);
+    boardRef.child(obj.id).set(getFirebasePayload(obj));
 });
 
 function saveObjectChange(obj) {
     if (isUpdatingFromServer || !obj.id) return;
-    boardRef.child(obj.id).update(obj.toJSON(['id', 'isFog', 'lockMovementX', 'lockMovementY', 'lockScalingX', 'lockScalingY', 'lockRotation', 'hasControls', 'borderColor', 'selectable', 'evented']));
+    boardRef.child(obj.id).update(getFirebasePayload(obj));
 }
 
 boardRef.on('child_added', (snapshot) => {
     const data = snapshot.val();
     if (canvas.getObjects().find(o => o.id === data.id)) return;
     isUpdatingFromServer = true;
+    
     fabric.util.enlivenObjects([data], (objects) => {
         objects.forEach(obj => {
-            if (obj.isFog) obj.set({ opacity: isUserDM ? 0.6 : 1.0 });
+            // Re-inject the properties immediately upon receiving
+            obj.id = data.id;
+            obj.isFog = data.isFog;
+
+            if (obj.isFog) {
+                obj.set({ 
+                    opacity: isUserDM() ? 0.6 : 1.0, 
+                    selectable: (currentMode === 'fog-select'),
+                    evented: (currentMode === 'fog-select' || currentMode === 'fog-erase') 
+                });
+            }
             canvas.add(obj);
         });
         isUpdatingFromServer = false;
         canvas.renderAll();
-    if (data.isFog) {
-    obj.set({ 
-        opacity: isUserDM ? 0.4 : 1.0, // DMs see through, players don't
-        selectable: (currentMode === 'fog'), // Only clickable in fog mode
-        evented: (currentMode === 'fog') 
-    });
-}
     });
 });
 
@@ -86,18 +135,22 @@ boardRef.on('child_changed', (snapshot) => {
     if (existing) {
         isUpdatingFromServer = true;
         existing.set(data);
-        if (existing.isFog) existing.set({ opacity: isUserDM ? 0.6 : 1.0 });
+        
+        existing.id = data.id;
+        existing.isFog = data.isFog;
+        
+        if (existing.isFog) { 
+            existing.set({ 
+                opacity: isUserDM() ? 0.6 : 1.0,
+                selectable: (currentMode === 'fog-select'),
+                evented: (currentMode === 'fog-select' || currentMode === 'fog-erase') 
+            }); 
+        }
+        
         existing.setCoords();
         canvas.renderAll();
         isUpdatingFromServer = false;
     }
-    if (data.isFog) {
-    obj.set({ 
-        opacity: isUserDM ? 0.4 : 1.0, // DMs see through, players don't
-        selectable: (currentMode === 'fog'), // Only clickable in fog mode
-        evented: (currentMode === 'fog') 
-    });
-}
 });
 
 boardRef.on('child_removed', (snapshot) => {
@@ -114,11 +167,40 @@ boardRef.on('child_removed', (snapshot) => {
 // 🖱️ MASTER MOUSE CONTROLLER (UNIFIED)
 // ==========================================
 canvas.on('mouse:down', function(opt) {
+    if (typeof hideDropdowns === 'function') hideDropdowns();
     const evt = opt.e;
     const pointer = canvas.getPointer(evt);
     const currentTime = new Date().getTime();
 
-    // 1. CAMERA PANNING (Priority #1)
+    // 1. FOG CREATE (Start drawing a rectangle)
+    if (currentMode === 'fog-create') {
+        isDrawingFog = true;
+        origX = pointer.x;
+        origY = pointer.y;
+        
+        fogShape = new fabric.Rect({
+            left: origX, top: origY, width: 0, height: 0,
+            fill: fogColor, isFog: true,
+            opacity: isUserDM() ? 0.6 : 1.0,
+            selectable: false, evented: false,
+            id: 'obj_' + Date.now() + '_' + Math.floor(Math.random() * 1000)
+        });
+        canvas.add(fogShape);
+        return;
+    }
+
+    // 2. FOG ERASE (Laser Eraser)
+    if (currentMode === 'fog-erase') {
+        isErasingFog = true;
+        if (opt.target && opt.target.isFog) {
+            if (opt.target.id) boardRef.child(opt.target.id).remove();
+            canvas.remove(opt.target);
+            canvas.requestRenderAll();
+        }
+        return;
+    }
+
+    // 3. CAMERA PANNING
     if (evt.altKey || evt.button === 1) {
         isDragging = true;
         canvas.selection = false;
@@ -128,7 +210,7 @@ canvas.on('mouse:down', function(opt) {
         return;
     }
 
-    // 2. DOUBLE-CLICK PING (Priority #2)
+    // 4. DOUBLE-CLICK PING
     if (currentTime - lastClickTime < 300) {
         database.ref('pings').push({ x: pointer.x, y: pointer.y, color: currentColor, timestamp: Date.now() });
         lastClickTime = 0;
@@ -136,12 +218,10 @@ canvas.on('mouse:down', function(opt) {
     }
     lastClickTime = currentTime;
 
-    // 3. TEXT TOOL
+    // 5. TEXT TOOL
     if (currentMode === 'text') {
         const text = new fabric.IText('Click to Edit', {
-            left: pointer.x, top: pointer.y,
-            fontFamily: 'Georgia, serif', fill: currentColor,
-            fontSize: 28, fontWeight: 'bold'
+            left: pointer.x, top: pointer.y, fontFamily: 'Georgia, serif', fill: currentColor, fontSize: 28, fontWeight: 'bold'
         });
         canvas.add(text);
         canvas.setActiveObject(text);
@@ -151,14 +231,36 @@ canvas.on('mouse:down', function(opt) {
         return;
     }
 
-    // 4. EMPTY SPACE DESELECT
-    if (!opt.target && currentMode === 'select') {
-        canvas.discardActiveObject();
-        canvas.requestRenderAll();
+    // 6. BULLETPROOF DESELECT (Fixes the "Sticky Token")
+    if (currentMode === 'select' || currentMode === 'fog-select') {
+        // If we click true empty space, OR if we accidentally click a fog box while in select mode
+        if (!opt.target || (opt.target && opt.target.isFog && currentMode === 'select')) {
+            canvas.discardActiveObject();
+            canvas.requestRenderAll();
+        }
     }
 });
 
 canvas.on('mouse:move', function(opt) {
+    const pointer = canvas.getPointer(opt.e);
+
+    if (isDrawingFog && fogShape) {
+        if (origX > pointer.x) { fogShape.set({ left: pointer.x }); }
+        if (origY > pointer.y) { fogShape.set({ top: pointer.y }); }
+        fogShape.set({ width: Math.abs(origX - pointer.x), height: Math.abs(origY - pointer.y) });
+        canvas.requestRenderAll();
+        return;
+    }
+
+    if (currentMode === 'fog-erase' && isErasingFog) {
+        if (opt.target && opt.target.isFog) {
+            if (opt.target.id) boardRef.child(opt.target.id).remove();
+            canvas.remove(opt.target);
+            canvas.requestRenderAll();
+        }
+        return;
+    }
+
     if (isDragging) {
         let vpt = canvas.viewportTransform;
         vpt[4] += opt.e.clientX - lastPosX;
@@ -170,9 +272,21 @@ canvas.on('mouse:move', function(opt) {
 });
 
 canvas.on('mouse:up', function() {
+    isErasingFog = false;
+    
+    // Force dragging to end unconditionally so tokens never stick!
     if (isDragging) {
         isDragging = false;
-        updateInteractions(); // Restore selectability based on mode
+        updateInteractions(); 
+    }
+
+    if (isDrawingFog) {
+        isDrawingFog = false;
+        if (fogShape) {
+            fogShape.setCoords();
+            saveObjectChange(fogShape); 
+            fogShape = null;
+        }
     }
 });
 
@@ -184,76 +298,47 @@ canvas.on('mouse:wheel', function(opt) {
 });
 
 // ==========================================
-// 🌫️ FOG & DRAWING LOGIC
-// ==========================================
-canvas.on('path:created', function(opt) {
-    const path = opt.path;
-    if (currentMode === 'fog') {
-        path.set({
-            isFog: true,
-            opacity: isUserDM ? 0.6 : 1.0,
-            strokeLineCap: 'round', strokeLineJoin: 'round',
-            selectable: false, evented: false
-        });
-        canvas.bringToFront(path);
-        setMode('select'); 
-    } else {
-        path.set({ isFog: false });
-        bringFogToFront();
-    }
-});
-
-function bringFogToFront() {
-    canvas.getObjects().forEach(obj => { if (obj.isFog) canvas.bringToFront(obj); });
-    canvas.renderAll();
-}
-
-// ==========================================
 // 🛠️ TOOLBAR & MODE FUNCTIONS
 // ==========================================
 function setMode(mode) {
     currentMode = mode;
     document.querySelectorAll('#whiteboard-toolbar .wb-btn').forEach(b => b.classList.remove('active'));
-    if(document.getElementById('btn-' + mode)) document.getElementById('btn-' + mode).classList.add('active');
-
-    canvas.isDrawingMode = (mode === 'draw' || mode === 'fog');
     
+    if (mode.startsWith('fog')) document.getElementById('btn-fog').classList.add('active');
+    else if (document.getElementById('btn-' + mode)) document.getElementById('btn-' + mode).classList.add('active');
+
+    canvas.isDrawingMode = (mode === 'draw');
     if (mode === 'draw') {
         canvas.freeDrawingBrush.color = currentColor;
         canvas.freeDrawingBrush.width = 5;
-    } else if (mode === 'fog') {
-        canvas.freeDrawingBrush.color = fogColor;
-        canvas.freeDrawingBrush.width = 80;
     }
     
     updateInteractions();
+    
+    const palette = document.getElementById('color-palette');
+    if (palette) palette.style.display = (mode === 'draw' || mode === 'text') ? 'flex' : 'none';
+    
     canvas.renderAll();
 }
 
 function updateInteractions() {
-    canvas.selection = (currentMode === 'select');
+    canvas.selection = (currentMode === 'select' || currentMode === 'fog-select');
+    
     canvas.getObjects().forEach(obj => {
         if (obj.isFog) {
-            // Fog can NEVER be moved, scaled, or rotated, even if selected
+            const canModifyFog = (currentMode === 'fog-select');
             obj.set({
-                selectable: (currentMode === 'fog'),
-                evented: (currentMode === 'fog'),
-                lockMovementX: true,
-                lockMovementY: true,
-                lockScalingX: true,
-                lockScalingY: true,
-                lockRotation: true,
-                hasControls: false, // Hide the square grab-handles
+                selectable: canModifyFog,
+                evented: (canModifyFog || currentMode === 'fog-erase'),
+                lockMovementX: !canModifyFog, lockMovementY: !canModifyFog,
+                lockScalingX: !canModifyFog, lockScalingY: !canModifyFog,
+                lockRotation: true, hasControls: canModifyFog,
                 strokeUniform: true
             });
             canvas.bringToFront(obj);
         } else {
-            // Normal objects (Tokens)
             const isSelectMode = (currentMode === 'select');
-            obj.set({
-                selectable: isSelectMode,
-                evented: isSelectMode
-            });
+            obj.set({ selectable: isSelectMode, evented: isSelectMode });
         }
     });
     canvas.renderAll();
@@ -273,12 +358,9 @@ function setColor(swatchElement, color) {
     }
 }
 
-// ==========================================
-// 🔝 LAYER & UTILITY FUNCTIONS
-// ==========================================
 function bringFront() { 
     const obj = canvas.getActiveObject(); 
-    if(obj) { obj.bringToFront(); bringFogToFront(); saveObjectChange(obj); } 
+    if(obj) { obj.bringToFront(); canvas.getObjects().forEach(o => { if(o.isFog) canvas.bringToFront(o); }); saveObjectChange(obj); } 
 }
 function sendBack() { 
     const obj = canvas.getActiveObject(); 
@@ -316,6 +398,37 @@ window.addEventListener('keydown', (e) => {
 });
 
 // ==========================================
+// 🖼️ IMAGE UPLOAD HANDLER
+// ==========================================
+function addImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(f) {
+        fabric.Image.fromURL(f.target.result, function(img) {
+            if (img.width > canvas.width) img.scaleToWidth(canvas.width * 0.5);
+            
+            img.set({
+                id: 'obj_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                selectable: true, evented: true,
+                borderColor: '#3399ff', cornerColor: '#3399ff',
+                cornerSize: 8, transparentCorners: false
+            });
+
+            canvas.add(img);
+            canvas.viewportCenterObject(img);
+            canvas.setActiveObject(img);
+            canvas.renderAll();
+            
+            if (typeof updateInteractions === "function") updateInteractions();
+        });
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+}
+
+// ==========================================
 // 🎯 MAP PING SYSTEM
 // ==========================================
 database.ref('pings').limitToLast(1).on('child_added', (snapshot) => {
@@ -331,64 +444,5 @@ function playPingAnimation(x, y, color) {
     });
     canvas.add(pingRing);
     pingRing.animate('radius', 60, { onChange: canvas.renderAll.bind(canvas), duration: 1000, easing: fabric.util.ease.easeOutCubic });
-    pingRing.animate('opacity', 0, { 
-        onChange: canvas.renderAll.bind(canvas), duration: 1000, 
-        onComplete: () => canvas.remove(pingRing) 
-    });
+    pingRing.animate('opacity', 0, { onChange: canvas.renderAll.bind(canvas), duration: 1000, onComplete: () => canvas.remove(pingRing) });
 }
-// ==========================================
-// 🖼️ IMAGE UPLOAD HANDLER
-// ==========================================
-function addImage(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(f) {
-        fabric.Image.fromURL(f.target.result, function(img) {
-            // 1. Scale to fit if the image is massive
-            if (img.width > canvas.width) img.scaleToWidth(canvas.width * 0.5);
-            
-            // 2. Set IDs and properties for the Firebase Sync Engine
-            img.set({
-                id: 'obj_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                selectable: true,
-                evented: true,
-                borderColor: '#3399ff',
-                cornerColor: '#3399ff',
-                cornerSize: 8,
-                transparentCorners: false
-            });
-
-            // 3. Add to board and center it in the user's view
-            canvas.add(img);
-            canvas.viewportCenterObject(img);
-            canvas.setActiveObject(img);
-            
-            // 4. Force a render so it shows up immediately
-            canvas.renderAll();
-            
-            // 5. Ensure the "Select" logic knows this new object exists
-            if (typeof updateInteractions === "function") {
-                updateInteractions();
-            }
-        });
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset the input so you can re-upload the same file if you delete/add it again
-    event.target.value = "";
-}
-canvas.on('mouse:over', function(e) {
-    if (currentMode === 'fog' && e.target && e.target.isFog) {
-        e.target.set('stroke', '#ff0000'); // Turn red when hovering in Fog Mode
-        canvas.renderAll();
-    }
-});
-
-canvas.on('mouse:out', function(e) {
-    if (e.target && e.target.isFog) {
-        e.target.set('stroke', fogColor); // Return to black
-        canvas.renderAll();
-    }
-});

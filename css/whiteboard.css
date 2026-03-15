@@ -1,4 +1,4 @@
-#whiteboard-wrapper { flex-grow: 1; display: flex; flex-direction: column; background: #18181b; border: 1px solid #333; border-radius: 8px; overflow: hidden; min-height: 0; }
+#whiteboard-wrapper { flex-grow: 1; display: flex; flex-direction: column; background: #18181b; border: 1px solid #333; border-radius: 8px; overflow: visible; min-height: 0; }
 /* --- THE NEW SLIDE TAB --- */
 #toolbar-tab {
     background: #111;
@@ -77,4 +77,30 @@
 .color-swatch.active {
     border-color: white;
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+}
+
+/* --- TOOLBAR ANIMATION --- */
+#whiteboard-toolbar {
+    background: #1a1a24;
+    padding: 8px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    flex-wrap: wrap; 
+    
+    /* Animation magic */
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease, opacity 0.3s ease;
+    max-height: 150px; /* Safely taller than your buttons */
+    opacity: 1;
+    overflow: hidden; /* This hides the buttons as the box shrinks */
+}
+
+#whiteboard-toolbar.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: 0px solid transparent; /* Removes the border line */
+    opacity: 0;
+    pointer-events: none; /* Stops ghost clicking */
 }

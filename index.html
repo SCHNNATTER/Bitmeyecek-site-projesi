@@ -22,7 +22,7 @@
     <div id="clear-modal" class="hidden-modal modal-overlay" data-include="components/clear-modal.html"></div>
     <div id="monster-creator-modal" class="hidden-modal modal-overlay" style="z-index: 3000;" data-include="components/monster-creator.html"></div>
     <div id="import-monster-modal" class="hidden-modal modal-overlay" style="z-index: 3100;" data-include="components/import-monster.html"></div>
-
+    <div id="player-modal" class="hidden-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f0f13; z-index: 3100; display: flex; flex-direction: column;" data-include="components/player-screen.html"></div>
     <div class="app-container">
         <div class="main-column">
             
@@ -30,31 +30,44 @@
                 
                 <div id="toolbar-tab" onclick="toggleToolbar()">🛠️ Hide Tools ▲</div>
                 
-                <div id="whiteboard-toolbar">
-                    <button class="wb-btn active" id="btn-select" onclick="setMode('select')">👆 Select</button>
-                    <button class="wb-btn" id="btn-draw" onclick="setMode('draw')">✏️ Draw</button>
-                     <button class="wb-btn" id="btn-fog" onclick="setMode('fog')" style="min-width: 80px; background: #2a2a35;">🌫️ Fog</button>
+                <div id="whiteboard-toolbar" style="overflow: visible !important;">
                     
-                    <div class="color-picker-group">
-                        <div class="color-swatch active" style="background: #ff4444;" onclick="setColor(this, '#ff4444')" title="Blood Red"></div>
-                        <div class="color-swatch" style="background: #4477ff;" onclick="setColor(this, '#4477ff')" title="Magic Blue"></div>
-                        <div class="color-swatch" style="background: #44ff44;" onclick="setColor(this, '#44ff44')" title="Acid Green"></div>
-                        <div class="color-swatch" style="background: #ffcc00;" onclick="setColor(this, '#ffcc00')" title="Gold"></div>
-                        <div class="color-swatch" style="background: #ffffff;" onclick="setColor(this, '#ffffff')" title="White"></div>
+                    <button class="wb-btn active" id="btn-select" onclick="setMode('select'); hideDropdowns();" title="Select Tool">👆</button>
+                    
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <button class="wb-btn" id="btn-draw" onclick="setMode('draw'); toggleDropdown('draw-menu');" title="Draw Tool">✏️</button>
+                        
+                        <div id="draw-menu" style="display: none; position: absolute; top: 120%; left: 0; background: #2a2a35; padding: 8px; border-radius: 6px; border: 1px solid #555; z-index: 9999; flex-direction: column; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">
+                            <div class="color-swatch active" style="background: #ff4444;" onclick="setColor(this, '#ff4444')"></div>
+                            <div class="color-swatch" style="background: #4477ff;" onclick="setColor(this, '#4477ff')"></div>
+                            <div class="color-swatch" style="background: #44ff44;" onclick="setColor(this, '#44ff44')"></div>
+                            <div class="color-swatch" style="background: #ffcc00;" onclick="setColor(this, '#ffcc00')"></div>
+                            <div class="color-swatch" style="background: #ffffff;" onclick="setColor(this, '#ffffff')"></div>
+                        </div>
                     </div>
                     
-                    <button class="wb-btn" id="btn-text" onclick="setMode('text')">🔤 Text</button>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <button class="wb-btn" id="btn-fog" onclick="toggleDropdown('fog-menu');" title="Fog of War">🌫️</button>
+                        
+                        <div id="fog-menu" style="display: none; position: absolute; top: 120%; left: 0; background: #2a2a35; padding: 8px; border-radius: 6px; border: 1px solid #555; z-index: 9999; flex-direction: column; gap: 5px; min-width: 130px; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">
+                            <button class="wb-btn" style="width: 100%; justify-content: flex-start; background: #18181b;" onclick="setMode('fog-create'); hideDropdowns();">⬛ Create Box</button>
+                            <button class="wb-btn" style="width: 100%; justify-content: flex-start; background: #18181b;" onclick="setMode('fog-select'); hideDropdowns();">👆 Move/Resize</button>
+                            <button class="wb-btn" style="width: 100%; justify-content: flex-start; background: #18181b;" onclick="setMode('fog-erase'); hideDropdowns();">🗑️ Erase Box</button>
+                        </div>
+                    </div>
+
+                    <button class="wb-btn" id="btn-text" onclick="setMode('text'); hideDropdowns();" title="Text Tool">🔤</button>
                     
-                    <button class="wb-btn" onclick="document.getElementById('image-upload').click()">🖼️ Add Image</button>
+                    <button class="wb-btn" onclick="document.getElementById('image-upload').click(); hideDropdowns();" title="Add Image">🖼️</button>
                     <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="addImage(event)">
                     
                     <div style="height: 20px; width: 1px; background: #444; margin: 0 5px;"></div>
-                    <button class="wb-btn" onclick="bringFront()" title="Bring to Front">🔝 Front</button>
-                    <button class="wb-btn" onclick="sendBack()" title="Send to Back">🔙 Back</button>
-                    <button class="wb-btn" id="btn-lock" onclick="toggleLock()" style="background: #4a4a4a;">🔒 Lock/Unlock</button>
                     
-                    <button class="wb-btn" style="background: #882222; margin-left: 10px;" onclick="clearBoard()">🗑️ Clear</button>
-                    <span class="wb-hint">Scroll to Zoom | Alt + Drag to Pan</span>
+                    <button class="wb-btn" onclick="bringFront(); hideDropdowns();" title="Bring to Front">🔝</button>
+                    <button class="wb-btn" onclick="sendBack(); hideDropdowns();" title="Send to Back">🔙</button>
+                    <button class="wb-btn" id="btn-lock" onclick="toggleLock(); hideDropdowns();" title="Lock/Unlock Object" style="background: #4a4a4a;">🔒</button>
+                    
+                    <button class="wb-btn" style="background: #882222; margin-left: 10px;" onclick="clearBoard(); hideDropdowns();" title="Clear Board">🗑️</button>
                 </div>
                 <div id="canvas-container">
                     <canvas id="whiteboard"></canvas>
@@ -93,46 +106,52 @@
             </div>
         </div>
 
-        <div id="sidebar">
-            <div class="sidebar-header">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3 style="margin: 0; color: white;">Roll History</h3>
-                    <div style="display: flex; gap: 5px;">
-                        <button class="ui-btn" style="padding: 2px 8px; font-size: 11px; background: #444;" onclick="document.getElementById('settings-menu').classList.toggle('hidden-modal')">⚙️ Options</button>
-                        <button class="ui-btn" style="padding: 2px 8px; font-size: 11px;" onclick="openClearModal()">🗑️ Clear</button>
-                    </div>
-                </div>
-
-                <div id="settings-menu" class="hidden-modal" style="background: #15151a; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 10px;">
-                    <div style="font-size: 12px; color: #aaa; margin-bottom: 10px; text-align: center;">
-                        Playing as: <strong id="display-name" style="color: #ffcc00;">Mysterious Stranger</strong> 
-                        <a href="#" style="color: #4477ff; margin-left: 5px;" onclick="changeName()">Change</a>
-                    </div>
-                    <button class="import-btn" style="padding: 6px; font-size: 12px; margin-bottom: 10px;" onclick="importDndBeyond(true)">Import from D&D Beyond</button>
-                    <div style="font-size: 11px; color: #666; text-align: center;">
-                        Not a DM? <a href="#" style="color: #4477ff;" onclick="localStorage.removeItem('tavernUserRole'); location.reload();">Reset Role</a>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 5px;">
-                    <button class="ui-btn" style="flex: 1; background: #222;" onclick="toggleCharSheet()">🛡️ Sheet</button>
-                    <button id="btn-dm-screen" class="ui-btn" style="flex: 1; background: #ffcc00; color: #000; font-weight: bold; display: none;" onclick="toggleDmScreen()">👑 DM Screen</button>
-                </div>
+ <div id="sidebar">
+    <div class="sidebar-top-block">
+        <div class="sidebar-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px;">
+            <h3 style="margin: 0; color: white;">Roll History</h3>
+            <div style="display: flex; gap: 5px;">
+                <button class="ui-btn" style="padding: 2px 8px; font-size: 11px; background: #444;" onclick="document.getElementById('settings-menu').classList.toggle('hidden-modal')">⚙️ Options</button>
+                <button class="ui-btn" style="padding: 2px 8px; font-size: 11px;" onclick="openClearModal()">🗑️ Clear</button>
             </div>
-
-            <div id="initiative-tracker">
-                <div class="tracker-header">
-                    <span>⚔️ Initiative</span>
-                    <div class="tracker-controls">
-                        <button class="mini-btn" onclick="openInitiativeModal()" title="Add Combatant">+</button>
-                        <button class="mini-btn" style="background: #882222;" onclick="clearInitiative()" title="Clear Combat">🗑️</button>
-                    </div>
-                </div>
-                <ul id="init-list"></ul>
-            </div>
-
-            <ul id="roll-history"></ul>
         </div>
+
+        <div id="settings-menu" class="hidden-modal" style="background: #15151a; border: 1px solid #333; border-radius: 6px; padding: 10px; margin: 0 15px 15px 15px;">
+            <div style="font-size: 12px; color: #aaa; margin-bottom: 10px; text-align: center;">
+                Playing as: <strong id="display-name" style="color: #ffcc00;">Mysterious Stranger</strong> 
+                <a href="#" style="color: #4477ff; margin-left: 5px;" onclick="changeName()">Change</a>
+            </div>
+            <button class="ui-btn" style="width: 100%; background: #4477ff; padding: 6px; font-size: 12px; margin-bottom: 10px;" onclick="importDndBeyond(true)">Import from D&D Beyond</button>
+            <div style="font-size: 11px; color: #666; text-align: center;">
+                Not a DM? <a href="#" style="color: #4477ff;" onclick="localStorage.removeItem('tavernUserRole'); location.reload();">Reset Role</a>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 5px; padding: 0 15px 15px 15px;">
+            <button class="ui-btn" style="flex: 1;" onclick="toggleCharSheet()">🛡️ Sheet</button>
+            <button id="btn-dm-screen" class="ui-btn" style="flex: 1; display: none;" onclick="toggleDmScreen()">👑 DM Screen</button>
+            <button class="ui-btn" style="flex: 1; background: #4477ff;" onclick="openPlayerScreen()">🛡️ Player Screen</button>
+        </div>
+    </div>
+
+    <div id="initiative-tracker">
+        <div class="tracker-header" style="display: flex; flex-direction: column; gap: 8px; padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span style="font-weight: bold; color: #ffcc00;">⚔️ Initiative</span>
+                <div class="tracker-controls" style="display: flex; gap: 5px;">
+                    <button class="ui-btn" style="padding: 2px 8px;" onclick="openInitiativeModal()" title="Add Combatant">+</button>
+                    <button class="ui-btn" style="background: #882222; padding: 2px 8px;" onclick="clearInitiative()" title="Clear Combat">🗑️</button>
+                </div>
+            </div>
+            <button class="ui-btn" style="background: #4477ff; width: 100%; font-size: 12px; padding: 5px;" onclick="nextTurn()">⏭️ Next Turn / Advance Round</button>
+        </div>
+        
+        <ul id="init-list"></ul>
+        <div id="init-resizer"></div>
+    </div>
+
+    <ul id="roll-history"></ul>
+</div>
     </div>
 
     <div id="char-sidebar">
@@ -219,15 +238,16 @@
         </div>
     </div>
 
-    <script src="js/core.js"></script>
     <script src="js/firebase-setup.js"></script>
+    <script src="js/core.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/dice.js"></script>
-    <script src="js/character.js"></script>
     <script src="js/initiative.js"></script>
     <script src="js/monsters.js"></script>
     <script src="js/statblock-roller.js"></script>
-    <script src="js/whiteboard.js"></script>
     <script src="js/tokens.js"></script>
+    <script src="js/whiteboard.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/player.js"></script>
 </body>
 </html>

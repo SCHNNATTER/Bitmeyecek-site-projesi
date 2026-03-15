@@ -7,9 +7,7 @@ let currentMonsters = {};
 // --- UI TOGGLES ---
 function toggleMonsterVault() {
     let vault = document.getElementById("monster-vault");
-    if (vault) {
-        vault.classList.toggle("hidden-modal");
-    }
+    if (vault) vault.classList.toggle("hidden-modal");
 }
 
 function openMonsterCreator() {
@@ -28,14 +26,12 @@ function addDynamicRow(containerId) {
     const container = document.getElementById(containerId);
     const row = document.createElement("div");
     row.className = "dynamic-row";
-    row.style.display = "flex";
-    row.style.gap = "5px";
-    row.style.marginBottom = "5px";
+    row.style.cssText = "display: flex; gap: 5px; margin-bottom: 5px;";
     
     row.innerHTML = `
         <input type="text" placeholder="Name (e.g. Multiattack)" class="mon-input" style="flex: 1;">
         <textarea placeholder="Description..." class="mon-input" style="flex: 3; resize: vertical; min-height: 35px;"></textarea>
-        <button type="button" class="ui-btn" style="background: #882222; padding: 5px;" onclick="this.parentElement.remove()">X</button>
+        <button type="button" class="ui-btn" style="background: #882222; padding: 5px;" onclick="this.parentElement.remove()">✖</button>
     `;
     container.appendChild(row);
 }
@@ -68,19 +64,16 @@ function saveMonster() {
         actions: []
     };
 
-    const traitRows = document.getElementById("traits-container").querySelectorAll(".dynamic-row");
-    traitRows.forEach(row => {
-        const name = row.querySelector("input").value;
-        const desc = row.querySelector("textarea").value;
-        if (name || desc) monster.traits.push({ name, desc });
-    });
+    const extractRows = (containerId, targetArray) => {
+        document.getElementById(containerId).querySelectorAll(".dynamic-row").forEach(row => {
+            const name = row.querySelector("input").value;
+            const desc = row.querySelector("textarea").value;
+            if (name || desc) targetArray.push({ name, desc });
+        });
+    };
 
-    const actionRows = document.getElementById("actions-container").querySelectorAll(".dynamic-row");
-    actionRows.forEach(row => {
-        const name = row.querySelector("input").value;
-        const desc = row.querySelector("textarea").value;
-        if (name || desc) monster.actions.push({ name, desc });
-    });
+    extractRows("traits-container", monster.traits);
+    extractRows("actions-container", monster.actions);
 
     monstersRef.push(monster);
     closeMonsterCreator();
@@ -104,7 +97,7 @@ monstersRef.on('value', (snapshot) => {
             <span>${mon.name}</span>
             <div style="display:flex; gap: 5px;">
                 <button class="ui-btn" style="padding: 2px 8px; font-size: 11px;" onclick="viewMonster('${child.key}')">View</button>
-                <button class="ui-btn" style="padding: 2px 8px; font-size: 11px; background: #882222;" onclick="deleteMonster('${child.key}')">X</button>
+                <button class="ui-btn" style="padding: 2px 8px; font-size: 11px; background: #882222;" onclick="deleteMonster('${child.key}')">✖</button>
             </div>
         `;
         listEl.appendChild(li);
@@ -124,7 +117,7 @@ function viewMonster(id) {
     if (!mon) return;
 
     function calcMod(score) {
-        let mod = Math.floor((parseInt(score) - 10) / 2);
+        let mod = Math.floor((parseInt(score || 10) - 10) / 2);
         return mod >= 0 ? `+${mod}` : mod;
     }
 
@@ -163,19 +156,17 @@ function viewMonster(id) {
             <div class="stat-red-line"></div>
 
             ${detailsHTML ? `<div class="stat-section">${detailsHTML}</div><div class="stat-red-line"></div>` : ""}
-
             ${traitsHTML ? `<div class="stat-section">${traitsHTML}</div>` : ""}
             ${actionsHTML ? `<h3 style="border-bottom: 1px solid #882222; color: #882222; margin-top: 15px; margin-bottom: 5px;">Actions</h3><div class="stat-section">${actionsHTML}</div>` : ""}
         </div>
     `;
 }
+
 // ==========================================
 // 🤖 AI JSON IMPORTER
 // ==========================================
-
 function openMonsterImport() {
     document.getElementById("import-monster-modal").classList.remove("hidden-modal");
-    // Clear the box for a fresh paste
     const textBox = document.getElementById("import-json-data");
     if(textBox) textBox.value = "";
 }
@@ -186,37 +177,27 @@ function closeMonsterImport() {
 
 function processMonsterImport() {
     let rawText = document.getElementById("import-json-data").value;
-    
-    // Auto-clean markdown formatting that AIs like to add (```json ... ```)
     rawText = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
 
     try {
-        // Parse the text into a JavaScript Object
         let importedMonster = JSON.parse(rawText);
-        
-        // Basic validation: make sure it at least has a name
         if (!importedMonster.name) {
             alert("Error: The JSON is missing a 'name' field!");
             return;
         }
-
-        // Push to Firebase!
         monstersRef.push(importedMonster);
-        
-        // Close modal and show success
         closeMonsterImport();
         alert(`Successfully imported: ${importedMonster.name}!`);
-        
     } catch (error) {
         console.error("JSON Parsing Error:", error);
         alert("Invalid JSON format. Please make sure the AI generated valid code.");
     }
 }
+
 // ==========================================
 // 📌 SIDEBAR MULTI-SHEET LOGIC
 // ==========================================
-
-let pinnedMonsters = {}; // This dictionary remembers your open monster sheets
+let pinnedMonsters = {};
 
 function switchSidebarSheet() {
     const selector = document.getElementById("sheet-selector");
@@ -233,7 +214,6 @@ function switchSidebarSheet() {
     }
 }
 
-// Toggles the Pin state of the currently viewed monster
 function pinCurrentMonster() {
     const displayArea = document.getElementById("monster-display");
     const nameEl = displayArea.querySelector('.stat-name');
@@ -247,47 +227,32 @@ function pinCurrentMonster() {
     const pinBtn = document.getElementById("btn-pin-monster");
     const selector = document.getElementById("sheet-selector");
     
-    // IF ALREADY PINNED -> UNPIN IT
     if (pinnedMonsters[monsterName]) {
-        delete pinnedMonsters[monsterName]; // Remove from memory
-        
-        // Remove it from the dropdown menu
+        delete pinnedMonsters[monsterName]; 
         for(let i = 0; i < selector.options.length; i++) {
             if(selector.options[i].value === monsterName) {
                 selector.remove(i);
                 break;
             }
         }
-        
-        // If the sidebar was actively showing this removed monster, switch back to PC
         if (selector.value === monsterName || selector.value === "") {
             selector.value = "pc";
             switchSidebarSheet();
         }
-        
-        // Update Button to "Inactive" state
         pinBtn.style.background = "#444";
         pinBtn.style.color = "white";
         pinBtn.innerText = "📌 Pin Monster";
-        
-    } 
-    // IF NOT PINNED -> PIN IT
-    else {
-        const statblockHTML = displayArea.innerHTML;
-        pinnedMonsters[monsterName] = statblockHTML; // Save to memory
-
-        // Add to dropdown
+    } else {
+        pinnedMonsters[monsterName] = displayArea.innerHTML; 
         const opt = document.createElement("option");
         opt.value = monsterName;
         opt.text = "🐉 " + monsterName;
         selector.add(opt);
 
-        // Update Button to "Active" state
         pinBtn.style.background = "#ffcc00";
         pinBtn.style.color = "#000";
         pinBtn.innerText = "📌 Pinned!";
         
-        // Update the sidebar in the background
         selector.value = monsterName;
         switchSidebarSheet();
     }
@@ -297,17 +262,11 @@ function pinCurrentMonster() {
 // 👁️ SMART DISPLAY OBSERVER
 // ==========================================
 const displayObserver = new MutationObserver(() => {
-    // 1. Pause the observer temporarily so we don't trap the app in an infinite loop
     displayObserver.disconnect();
-
     const displayArea = document.getElementById("monster-display");
 
-    // 2. RUN THE AUTO-PARSER (Makes text clickable)
-    if (displayArea) {
-        makeRollable(displayArea);
-    }
+    if (displayArea) makeRollable(displayArea);
 
-    // 3. UPDATE THE PIN BUTTON
     const nameEl = document.querySelector('#monster-display .stat-name');
     const pinBtn = document.getElementById("btn-pin-monster");
     
@@ -324,50 +283,38 @@ const displayObserver = new MutationObserver(() => {
         }
     }
 
-    // 4. Resume watching for the next monster
-    if (displayArea) {
-        displayObserver.observe(displayArea, { childList: true, subtree: true });
-    }
+    if (displayArea) displayObserver.observe(displayArea, { childList: true, subtree: true });
 });
 
-// Start watching the display area as soon as the page loads
 window.addEventListener('DOMContentLoaded', () => {
     const displayArea = document.getElementById("monster-display");
-    if (displayArea) {
-        displayObserver.observe(displayArea, { childList: true, subtree: true });
-    }
+    if (displayArea) displayObserver.observe(displayArea, { childList: true, subtree: true });
 });
-// ==========================================
-// 🎲 DYNAMIC STATBLOCK ROLLER
-// ==========================================
 
+// ==========================================
+// 🎲 DYNAMIC STATBLOCK ROLLER (UPGRADED)
+// ==========================================
 function makeRollable(element) {
-    // Crawl through every piece of raw text in the statblock
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
     const nodesToReplace = [];
     let node;
     
     while (node = walker.nextNode()) {
-        // Skip text that is already inside a button or rollable span
-        if (node.parentNode.tagName === 'BUTTON' || node.parentNode.classList.contains('rollable')) continue;
+        const parentTag = node.parentNode.tagName;
+        if (parentTag === 'BUTTON' || parentTag === 'A' || node.parentNode.classList.contains('rollable')) continue;
 
         const text = node.nodeValue;
-        // Check if the text contains a dice format (1d6 + 2) or a modifier (+5)
         const hasDice = /(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi.test(text);
-        const hasMod = /(^|\s|\()([+-]\d+)(?=\s|\)|$|,)/g.test(text);
+        // Upgraded Regex: Catches modifiers touching periods, commas, or semicolons
+        const hasMod = /(^|\s|\()([+-]\d+)(?=\s|\)|$|,|\.|;|:)/g.test(text);
 
-        if (hasDice || hasMod) {
-            nodesToReplace.push(node);
-        }
+        if (hasDice || hasMod) nodesToReplace.push(node);
     }
 
-    // Convert the plain text into clickable HTML spans
     nodesToReplace.forEach(n => {
         let html = n.nodeValue
-            // 1. Replace Dice (e.g. 1d6 + 2)
-            .replace(/(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi, `<span class="rollable" onclick="quickMonsterRoll('$1', event)">$1</span>`)
-            // 2. Replace standalone Modifiers (e.g. +5)
-            .replace(/(^|\s|\()([+-]\d+)(?=\s|\)|$|,)/g, `$1<span class="rollable" onclick="quickMonsterRoll('$2', event)">$2</span>`);
+            .replace(/(\d+d\d+(?:\s*[+-]\s*\d+)?)/gi, `<span class="rollable" style="color: #4477ff; cursor: pointer; font-weight: bold;" onclick="quickMonsterRoll('$1', event)" title="Send $1 to Dice Tray">$1</span>`)
+            .replace(/(^|\s|\()([+-]\d+)(?=\s|\)|$|,|\.|;|:)/g, `$1<span class="rollable" style="color: #4477ff; cursor: pointer; font-weight: bold;" onclick="quickMonsterRoll('$2', event)" title="Roll 1d20$2">$2</span>`);
 
         const span = document.createElement('span');
         span.innerHTML = html;
@@ -376,15 +323,13 @@ function makeRollable(element) {
 }
 
 function quickMonsterRoll(formula, event) {
-    event.stopPropagation(); // Stops the click from triggering things behind it
+    event.stopPropagation(); 
     let cleanFormula = formula.replace(/\s+/g, '');
 
-    // If it's just a modifier like "+5", automatically attach a d20 to it
     if (cleanFormula.startsWith('+') || cleanFormula.startsWith('-')) {
         cleanFormula = '1d20' + cleanFormula;
     }
 
-    // Parse the formula into math
     let match = cleanFormula.match(/(\d+)d(\d+)([+-]\d+)?/);
     if (!match) return;
 
@@ -392,36 +337,33 @@ function quickMonsterRoll(formula, event) {
     let sides = parseInt(match[2]);
     let mod = match[3] ? parseInt(match[3]) : 0;
 
-    let total = 0;
-    let rolls = [];
-    for (let i = 0; i < numDice; i++) {
-        let r = Math.floor(Math.random() * sides) + 1;
-        rolls.push(r);
-        total += r;
+    // ADD TO THE MULTIPLAYER TRAY
+    if (typeof addToPool === "function") {
+        for (let i = 0; i < numDice; i++) {
+            addToPool(sides);
+        }
     }
-    total += mod;
 
-    // Figure out which monster we are rolling for
+    const modInput = document.getElementById('modifier-input');
+    if (modInput) {
+        let currentMod = parseInt(modInput.value) || 0;
+        modInput.value = currentMod + mod;
+    }
+
     let monsterName = "Monster";
     let statblock = event.target.closest('.statblock');
     if (statblock) {
-        let nameEl = statblock.querySelector('.stat-name');
-        if (nameEl) monsterName = nameEl.innerText;
+        let nameEl = statblock.querySelector('.stat-name') || statblock.querySelector('h1, h2, h3');
+        if (nameEl) monsterName = nameEl.innerText.trim();
+    }
+    
+    const nameDisplay = document.getElementById('display-name');
+    if (nameDisplay) {
+        nameDisplay.innerText = monsterName; 
     }
 
-    // Send it directly to the Roll History
-    const historyList = document.getElementById('roll-history');
-    const li = document.createElement('li');
-    li.innerHTML = `
-        <div class="player-name">${monsterName}</div>
-        <div class="roll-formula">Rolled ${cleanFormula}</div>
-        <div class="roll-output">
-            <span class="roll-total">${total}</span>
-            <div class="dice-grid">
-                ${rolls.map(r => `<span class="mini-die">${r}</span>`).join('')}
-                ${mod !== 0 ? `<span style="color:#aaa; font-size:12px; padding-top:4px;">${mod > 0 ? '+' : ''}${mod}</span>` : ''}
-            </div>
-        </div>
-    `;
-    historyList.prepend(li);
+    const diceSec = document.getElementById('dice-section');
+    if (diceSec && diceSec.classList.contains('collapsed')) {
+        if (typeof toggleDice === "function") toggleDice(); 
+    }
 }
